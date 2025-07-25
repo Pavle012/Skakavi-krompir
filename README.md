@@ -1,1 +1,2 @@
-# Flappy bird-like game
+# Skakavi krompir
+ A flappy bird-like game
