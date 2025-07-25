@@ -13,11 +13,17 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 image = pygame.image.load("assets/potato.png")
 velocity = 0
 x = 100
-y = (HEIGHT // 2) - 200
+y = (HEIGHT // 2)
 fps = 60
 clock = pygame.time.Clock()
 paused = False
 scroll = 0
+PIPE_SPACING = 100
+pipesPos = []
+for i in range(100):
+    randomY = random.randint(-200, 200)
+    pipesPos.append((100 - scroll + (i * PIPE_SPACING), -100 + randomY))
+    pipesPos.append((100 - scroll + (i * PIPE_SPACING), 800 + randomY))
 
 ################################################
 ################### Classes ####################
@@ -34,19 +40,18 @@ class pipe:
 ################### Functions ##################
 ################################################
 def isPotatoColliding():
-    global y
-    if y < 0 or y > HEIGHT - 100:
-        return True
-    for i in range(100):
-        if (300 + scroll) <= x <= (350 + scroll) and (y <= 300 or y >= 500):
+    potatoRect = pygame.Rect(x, y, 2360 // 30, 1745 // 30)
+    for pipeX, pipeY in pipesPos:
+        pipeRect = pygame.Rect(pipeX + scroll, pipeY, 50, 300) # pipesPos[i][0] + scroll + addedScroll, pipesPos[i][1]
+        if potatoRect.colliderect(pipeRect):
             return True
     return False
 
-def spawnPipe():
+
+def spawnPipe(addedScroll):
     global scroll
-    randomY = random.randint(-200, 200)
-    pipe(300 + scroll, 0 + randomY).draw(screen)
-    pipe(300 + scroll, 900 + randomY).draw(screen)
+    for i in range(100):
+        pipe(pipesPos[i][0] + scroll + addedScroll, pipesPos[i][1]).draw(screen)
 
 ################################################
 ################### Main Loop ##################
@@ -59,7 +64,7 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN and not paused:
             if event.key == pygame.K_SPACE:
-                velocity = -10
+                velocity = -8
             if event.key == pygame.K_ESCAPE:
                 paused = True
                 afterpause = gui.pause_screen()
@@ -80,7 +85,7 @@ while running:
                 paused = False
         screen.fill((0, 0, 0))
         for i in range(100):
-            spawnPipe()
+            spawnPipe(200 * i)
         velocity += 0.5
         scroll -= 2
         y += velocity
