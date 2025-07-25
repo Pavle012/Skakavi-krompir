@@ -41,12 +41,24 @@ while running:
         if event.type == pygame.KEYDOWN and not paused:
             if event.key == pygame.K_SPACE:
                 velocity = -20
+            if event.key == pygame.K_ESCAPE:
+                paused = True
+                afterpause = gui.pause_screen()
+                if afterpause == "exit":
+                    running = False
+                elif afterpause == "resume":
+                    paused = False
 
-    if y > HEIGHT:
-        gui.lose_screen()
-        paused = True
 
     if not paused:
+        if y > HEIGHT:
+            afterpause = gui.lose_screen()
+            if afterpause == "exit":
+                running = False
+            elif afterpause == "restart":
+                y = (HEIGHT // 2) - 200
+                velocity = 0
+                paused = False
         screen.fill((0, 0, 0))
         velocity += 0.5
         y += velocity
