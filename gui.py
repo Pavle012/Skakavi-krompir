@@ -15,12 +15,12 @@ def lose_screen():
         root.destroy()
     
     root = tk.Tk()
-    loselabel = tk.Label(root, text="You lost!", font=("assets/Poppins.ttf", 24))
+    loselabel = tk.Label(root, text="You lost!", font=("assets/font.ttf", 24))
     loselabel.pack()
     root.title("skakavi krompir")
     root.geometry("300x200")
-    exitbutton = tk.Button(root, text="Exit", command=exit_game, font=("assets/Poppins.ttf", 16))
-    restartbutton = tk.Button(root, text="Restart", command=restart, font=("assets/Poppins.ttf", 16))
+    exitbutton = tk.Button(root, text="Exit", command=exit_game, font=("assets/font.ttf", 16))
+    restartbutton = tk.Button(root, text="Restart", command=restart, font=("assets/font.ttf", 16))
     restartbutton.pack()
     exitbutton.pack()
     root.mainloop()
@@ -43,12 +43,12 @@ def pause_screen():
         returncode = "resume"
         root.destroy()
     root = tk.Tk()
-    pauselabel = tk.Label(root, text="Paused", font=("assets/Poppins.ttf", 24))
+    pauselabel = tk.Label(root, text="Paused", font=("assets/font.ttf", 24))
     pauselabel.pack()
     root.title("skakavi krompir")
     root.geometry("300x200")
-    exitbutton = tk.Button(root, text="Exit", command=exit_game, font=("assets/Poppins.ttf", 16))
-    resumebutton = tk.Button(root, text="Resume", command=resume, font=("assets/Poppins.ttf", 16))
+    exitbutton = tk.Button(root, text="Exit", command=exit_game, font=("assets/font.ttf", 16))
+    resumebutton = tk.Button(root, text="Resume", command=resume, font=("assets/font.ttf", 16))
     resumebutton.pack()
     exitbutton.pack()
     root.mainloop()
@@ -56,3 +56,5 @@ def pause_screen():
         return "exit"
     elif returncode == "resume":
         return "resume"
+
+

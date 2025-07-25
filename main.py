@@ -2,7 +2,7 @@ import pygame
 import gui
 import random
 ###############################################
-########### Flappy Bird-like Game #############
+############ Flappy Bird-like Game ############
 ###############################################
 
 HEIGHT = 800
@@ -18,12 +18,12 @@ fps = 60
 clock = pygame.time.Clock()
 paused = False
 scroll = 0
-PIPE_SPACING = 100
+PIPE_SPACING = 300
 pipesPos = []
 for i in range(100):
-    randomY = random.randint(-200, 200)
-    pipesPos.append((100 - scroll + (i * PIPE_SPACING), -100 + randomY))
-    pipesPos.append((100 - scroll + (i * PIPE_SPACING), 800 + randomY))
+    randomY = random.randint(-100, 100)
+    pipesPos.append((100 - scroll + (i * PIPE_SPACING), 0 + randomY))
+    pipesPos.append((100 - scroll + (i * PIPE_SPACING), 600 + randomY))
 
 ################################################
 ################### Classes ####################
@@ -41,17 +41,18 @@ class pipe:
 ################################################
 def isPotatoColliding():
     potatoRect = pygame.Rect(x, y, 2360 // 30, 1745 // 30)
-    for pipeX, pipeY in pipesPos:
-        pipeRect = pygame.Rect(pipeX + scroll, pipeY, 50, 300) # pipesPos[i][0] + scroll + addedScroll, pipesPos[i][1]
+    for px, py in pipesPos:
+        realX = px + scroll
+        pipeRect = pygame.Rect(realX, py, 50, 300)
         if potatoRect.colliderect(pipeRect):
             return True
     return False
 
 
-def spawnPipe(addedScroll):
-    global scroll
-    for i in range(100):
-        pipe(pipesPos[i][0] + scroll + addedScroll, pipesPos[i][1]).draw(screen)
+def spawnPipe():
+    for px, py in pipesPos:
+        realX = px + scroll
+        pipe(realX, py).draw(screen)
 
 ################################################
 ################### Main Loop ##################
@@ -84,8 +85,9 @@ while running:
                 velocity = 0
                 paused = False
         screen.fill((0, 0, 0))
-        for i in range(100):
-            spawnPipe(200 * i)
+
+        spawnPipe()
+
         velocity += 0.5
         scroll -= 2
         y += velocity
@@ -93,3 +95,5 @@ while running:
         clock.tick(fps)
         screen.blit(image, (x, y))
         pygame.display.update()
+
+pygame.quit()
