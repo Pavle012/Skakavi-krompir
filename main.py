@@ -1,12 +1,21 @@
 import pygame
+import gui
 ###############################################
 ########### Flappy Bird-like Game #############
 ###############################################
 
+HEIGHT = 800
+WIDTH = 1200
 pygame.init()
 pygame.display.set_caption("skakavi krompir")
-screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
 image = pygame.image.load("assets/potato.png")
+velocity = 0
+x = 100
+y = (HEIGHT // 2) - 200
+fps = 60
+clock = pygame.time.Clock()
+paused = False
 
 ################################################
 ################### Classes ####################
@@ -19,35 +28,6 @@ class square:
 
     def draw(self, screen):
         pygame.draw.rect(screen, (255, 0, 0), (self.x, self.y, self.size, self.size))
-class potato:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def draw(self, screen):
-        screen.blit(image, (self.x, self.y))
-    def move(self, dx, dy):
-        self.x += dx
-        self.y += dy
-        def update(self):
-        self.rect.x += self.speed
-        self.rect.y += self.speed
-        if self.rect.x > 640 or self.rect.x < 0:
-            self.speed[0] = -self.speed[0]
-        if self.rect.y > 480 or self.rect.y < 0:
-            self.speed[1] = -self.speed[1]
-            
-        
-        
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_a]:
-            self.rect.x -= self.speed
-        if keys[pygame.K_d]:
-            self.rect.x += self.speed
-        if keys[pygame.K_w]:
-            self.rect.y -= self.speed
-        if keys[pygame.K_s]:
-            self.rect.y += self.speed
 
 ################################################
 ################### Main Loop ##################
@@ -58,8 +38,20 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN and not paused:
+            if event.key == pygame.K_SPACE:
+                velocity = -20
 
-    screen.fill((0, 0, 0))
-    
+    if y > HEIGHT:
+        gui.lose_screen()
+        paused = True
 
-    pygame.display.flip()
+    if not paused:
+        screen.fill((0, 0, 0))
+        velocity += 0.5
+        y += velocity
+        image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
+        clock.tick(fps)
+        screen.blit(image, (x, y))
+        pygame.display.update()
+        print(y)
