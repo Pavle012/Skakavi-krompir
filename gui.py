@@ -42,6 +42,9 @@ def pause_screen():
         global returncode
         returncode = "resume"
         root.destroy()
+    def settings():
+        global returncode
+        import settings
     root = tk.Tk()
     pauselabel = tk.Label(root, text="Paused", font=("assets/font.ttf", 24))
     pauselabel.pack()
@@ -49,12 +52,12 @@ def pause_screen():
     root.geometry("300x200")
     exitbutton = tk.Button(root, text="Exit", command=exit_game, font=("assets/font.ttf", 16))
     resumebutton = tk.Button(root, text="Resume", command=resume, font=("assets/font.ttf", 16))
+    settingsbutton = tk.Button(root, text="Settings", command=settings, font=("assets/font.ttf", 16))
     resumebutton.pack()
     exitbutton.pack()
+    settingsbutton.pack()
     root.mainloop()
-    if returncode == "exit":
-        return "exit"
-    elif returncode == "resume":
-        return "resume"
+    return returncode
+
 
 
