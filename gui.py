@@ -50,7 +50,7 @@ def pause_screen():
     pauselabel = tk.Label(root, text="Paused", font=("assets/font.ttf", 24))
     pauselabel.pack()
     root.title("skakavi krompir")
-    root.geometry("300x200")
+    root.geometry("340x300")
     exitbutton = tk.Button(root, text="Exit", command=exit_game, font=("assets/font.ttf", 16))
     resumebutton = tk.Button(root, text="Resume", command=resume, font=("assets/font.ttf", 16))
     settingsbutton = tk.Button(root, text="Settings", command=settings, font=("assets/font.ttf", 16))

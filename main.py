@@ -1,10 +1,14 @@
 import pygame
 import gui
 import random
+import namecheck
+import datetime
+
 ###############################################
 ############ Flappy Bird-like Game ############
 ###############################################
 
+name = namecheck.getname()
 HEIGHT = 800
 WIDTH = 1200
 pygame.init()
@@ -123,7 +127,7 @@ while running:
         screen.blit(text, (WIDTH - text.get_width() - 10, 10))
         if y > HEIGHT or y < 0 or isPotatoColliding():
             paused = True
-            appendScore(points)
+            appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
             reloadSettings()
             afterpause = gui.lose_screen()
             if afterpause == "exit":
