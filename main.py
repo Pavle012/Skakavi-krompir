@@ -60,9 +60,21 @@ def spawnPipe():
         realX = px + scroll
         pipe(realX, py).draw(screen)
 
+def getSettings(key):
+    settings = {}
+    with open("settings.txt") as f:
+        for line in f:
+            if "=" in line:
+                k, value = line.strip().split("=", 1)
+                settings[k] = value
+    return settings.get(key)
+
 ################################################
 ################### Main Loop ##################
 ################################################
+
+scrollPixelsPerFrame = int(getSettings("scrollPixelsPerFrame")) if getSettings("scrollPixelsPerFrame") else 2
+
 running = True
 
 while running:
@@ -94,13 +106,14 @@ while running:
         text = font.render(text_str, True, (255, 255, 255))
 
         velocity += 0.5
-        scroll -= 2
+        scroll -= scrollPixelsPerFrame
         y += velocity
         image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
         clock.tick(fps)
         screen.blit(image, (x, y))
         screen.blit(text, (WIDTH - text.get_width() - 10, 10))
         if y > HEIGHT or y < 0 or isPotatoColliding():
+            scrollPixelsPerFrame = int(getSettings("scrollPixelsPerFrame")) if getSettings("scrollPixelsPerFrame") else 2
             afterpause = gui.lose_screen()
             if afterpause == "exit":
                 running = False

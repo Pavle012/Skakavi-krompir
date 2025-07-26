@@ -1,5 +1,5 @@
 import tkinter as tk
-import multiprocessing
+import subprocess
 returncode = "error"
 
 def lose_screen():
@@ -44,7 +44,7 @@ def pause_screen():
         root.destroy()
     def settings():
         global returncode
-        import settings
+        subprocess.run(["python3", "settings.py"])
     root = tk.Tk()
     pauselabel = tk.Label(root, text="Paused", font=("assets/font.ttf", 24))
     pauselabel.pack()
