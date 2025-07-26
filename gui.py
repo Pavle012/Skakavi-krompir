@@ -1,5 +1,6 @@
 import tkinter as tk
 import subprocess
+import scores as scs
 returncode = "error"
 
 def lose_screen():
@@ -45,7 +46,7 @@ def pause_screen():
     def settings():
         subprocess.run(["python3", "settings.py"])
     def scores():
-        subprocess.run(["python3", "scores.py"])
+        scs.start()
     root = tk.Tk()
     pauselabel = tk.Label(root, text="Paused", font=("assets/font.ttf", 24))
     pauselabel.pack()
