@@ -63,6 +63,14 @@ except:
     print("Error: scrollPixelsPerFrame not found in settings.txt, using default value of 2")
 scrollPixelsPerFrame.bind("<Return>", handle_enter_key)
 scrollPixelsPerFrame.pack()
+jumpVelocity = tk.Entry(root, font=("assets/Poppins.ttf", 16))
+try:
+    jumpVelocity.insert(0, int(getSettings("jumpVelocity")))
+except:
+    jumpVelocity.insert(0, 12)
+    print("Error: jumpVelocity not found in settings.txt, using default value of 12")
+jumpVelocity.bind("<Return>", lambda event: setSettings("jumpVelocity", jumpVelocity.get()))
+jumpVelocity.pack()
 
 
 root.title("skakavi krompir settings")

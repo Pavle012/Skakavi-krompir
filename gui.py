@@ -43,8 +43,9 @@ def pause_screen():
         returncode = "resume"
         root.destroy()
     def settings():
-        global returncode
         subprocess.run(["python3", "settings.py"])
+    def scores():
+        subprocess.run(["python3", "scores.py"])
     root = tk.Tk()
     pauselabel = tk.Label(root, text="Paused", font=("assets/font.ttf", 24))
     pauselabel.pack()
@@ -53,6 +54,8 @@ def pause_screen():
     exitbutton = tk.Button(root, text="Exit", command=exit_game, font=("assets/font.ttf", 16))
     resumebutton = tk.Button(root, text="Resume", command=resume, font=("assets/font.ttf", 16))
     settingsbutton = tk.Button(root, text="Settings", command=settings, font=("assets/font.ttf", 16))
+    scorebutton = tk.Button(root, text="Scores", command=scores, font=("assets/font.ttf", 16))
+    scorebutton.pack()
     resumebutton.pack()
     exitbutton.pack()
     settingsbutton.pack()

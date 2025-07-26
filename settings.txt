@@ -1,1 +1,2 @@
 scrollPixelsPerFrame=5
+jumpVelocity=7

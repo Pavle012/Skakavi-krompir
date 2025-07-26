@@ -69,12 +69,21 @@ def getSettings(key):
                 settings[k] = value
     return settings.get(key)
 
+def reloadSettings():
+    global scrollPixelsPerFrame, jumpVelocity
+    scrollPixelsPerFrame = int(getSettings("scrollPixelsPerFrame")) if getSettings("scrollPixelsPerFrame") else 2
+    jumpVelocity = int(getSettings("jumpVelocity")) if getSettings("jumpVelocity") else 12
+
+def appendScore(score):
+    with open("scores.txt", "a") as f:
+        f.write(f"{score}\n")
+
+
 ################################################
 ################### Main Loop ##################
 ################################################
 
-scrollPixelsPerFrame = int(getSettings("scrollPixelsPerFrame")) if getSettings("scrollPixelsPerFrame") else 2
-
+reloadSettings()
 running = True
 
 while running:
@@ -83,7 +92,7 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN and not paused:
             if event.key == pygame.K_SPACE:
-                velocity = -12
+                velocity = -jumpVelocity
             if event.key == pygame.K_ESCAPE:
                 paused = True
                 afterpause = gui.pause_screen()
@@ -92,7 +101,7 @@ while running:
                 elif afterpause == "resume":
                     paused = False
         if event.type == pygame.MOUSEBUTTONDOWN and not paused:
-            velocity = -12
+            velocity = -jumpVelocity
 
     if not paused:
         screen.fill((66, 183, 237))
@@ -113,7 +122,9 @@ while running:
         screen.blit(image, (x, y))
         screen.blit(text, (WIDTH - text.get_width() - 10, 10))
         if y > HEIGHT or y < 0 or isPotatoColliding():
-            scrollPixelsPerFrame = int(getSettings("scrollPixelsPerFrame")) if getSettings("scrollPixelsPerFrame") else 2
+            paused = True
+            appendScore(points)
+            reloadSettings()
             afterpause = gui.lose_screen()
             if afterpause == "exit":
                 running = False
