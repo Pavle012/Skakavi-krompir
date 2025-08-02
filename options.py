@@ -52,13 +52,15 @@ def start():
 
 
     root = tk.Tk()
-    settingsLabel = tk.Label(root, text="Settings", font=("assets/Poppins.ttf", 24))
+    settingsLabel = tk.Label(root, text="Settings", font=("assets/font.ttf", 24))
     settingsLabel.pack()
-    uploadFontButton = tk.Button(root, text="Upload Font", command=upload_font, font=("assets/Poppins.ttf", 16))
+    uploadFontButton = tk.Button(root, text="Upload Font", command=upload_font, font=("assets/font.ttf", 10))
     uploadFontButton.pack()
-    uploadImageButton = tk.Button(root, text="Upload your own potato", command=upload_image, font=("assets/Poppins.ttf", 16))
+    uploadImageButton = tk.Button(root, text="Upload your own potato", command=upload_image, font=("assets/font.ttf", 10))
     uploadImageButton.pack()
-    scrollPixelsPerFrame = tk.Entry(root, font=("assets/Poppins.ttf", 16))
+    clarifylabel = tk.Label(root, text="Speed", font=("assets/font.ttf", 8))
+    clarifylabel.pack()
+    scrollPixelsPerFrame = tk.Entry(root, font=("assets/font.ttf", 16))
     try: 
         scrollPixelsPerFrame.insert(0, int(getSettings("scrollPixelsPerFrame")))
     except:
@@ -66,7 +68,9 @@ def start():
         print("Error: scrollPixelsPerFrame not found in settings.txt, using default value of 2")
     scrollPixelsPerFrame.bind("<Return>", handle_enter_key)
     scrollPixelsPerFrame.pack()
-    jumpVelocity = tk.Entry(root, font=("assets/Poppins.ttf", 16))
+    clarifylabel = tk.Label(root, text="Jump height", font=("assets/font.ttf", 8))
+    clarifylabel.pack()
+    jumpVelocity = tk.Entry(root, font=("assets/font.ttf", 16))
     try:
         jumpVelocity.insert(0, int(getSettings("jumpVelocity")))
     except:

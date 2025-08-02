@@ -30,7 +30,7 @@ scroll = 500
 PIPE_SPACING = 300
 pipesPos = []
 pipeColor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-for i in range(100):
+for i in range(200):
     randomY = random.randint(-100, 100)
     pipesPos.append((100 + (i * PIPE_SPACING), 0 + randomY))
     pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY))
