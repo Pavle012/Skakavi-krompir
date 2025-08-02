@@ -1,2 +1,2 @@
 scrollPixelsPerFrame=8
-jumpVelocity=7
+jumpVelocity=8
