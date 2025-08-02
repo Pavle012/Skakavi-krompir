@@ -1,6 +1,6 @@
 import tkinter as tk
-import subprocess
 import scores as scs
+import options
 returncode = "error"
 
 def lose_screen():
@@ -44,7 +44,7 @@ def pause_screen():
         returncode = "resume"
         root.destroy()
     def settings():
-        subprocess.run(["python3", "settings.py"])
+        options.start()
     def scores():
         scs.start()
     root = tk.Tk()
@@ -62,6 +62,3 @@ def pause_screen():
     settingsbutton.pack()
     root.mainloop()
     return returncode
-
-
-
