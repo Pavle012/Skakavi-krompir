@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog
-import subprocess
+import shutil
 
 def start():
     def getSettings(key):
@@ -37,7 +37,8 @@ def start():
         )
         
         if file_path:
-            subprocess.run(["cp", file_path, "assets/font.ttf"])
+            shutil.copyfile(file_path, "assets/font.ttf")
+            # subprocess.run(["cp", file_path, "assets/font.ttf"])    # this is deprecated and doesnt work on windows
     def upload_image():
         file_path = filedialog.askopenfilename(
             initialdir="/",
@@ -46,7 +47,8 @@ def start():
         )
         
         if file_path:
-            subprocess.run(["cp", file_path, "assets/potato.png"])
+            shutil.copyfile(file_path, "assets/potato.png")
+            # subprocess.run(["cp", file_path, "assets/potato.png"])  # this is deprecated and doesnt work on windows
 
 
     root = tk.Tk()
