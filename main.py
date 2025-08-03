@@ -18,23 +18,24 @@ pygame.init()
 pygame.display.set_caption("skakavi krompir")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 image = pygame.image.load("assets/potato.png")
+image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 pygame.display.set_icon(image)
 velocity = 0
 x = 100
 y = (HEIGHT // 2)
-fps = 60
+maxfps = 60
 clock = pygame.time.Clock()
 paused = False
 points = 0
 font = pygame.font.Font("assets/font.ttf", 36)
 text_str = f"Points: {points}"
 text = font.render(text_str, True, (255, 255, 255))
-
+pipeNumber = 100
 scroll = 500
 PIPE_SPACING = 300
 pipesPos = []
 pipeColor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-for i in range(200):
+for i in range(pipeNumber):
     randomY = random.randint(-100, 100)
     pipesPos.append((100 + (i * PIPE_SPACING), 0 + randomY))
     pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY))
@@ -86,7 +87,6 @@ def appendScore(score):
     with open("scores.txt", "a") as f:
         f.write(f"{score}\n")
 
-
 ################################################
 ################### Main Loop ##################
 ################################################
@@ -122,11 +122,12 @@ while running:
         text_str = f"Points: {points}"
         text = font.render(text_str, True, (255, 255, 255))
 
-        velocity += 0.5
-        scroll -= scrollPixelsPerFrame
-        y += velocity
-        image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
-        clock.tick(fps)
+        delta = clock.get_time() / 1000
+
+        velocity += 0.5 * delta * 60
+        scroll -= scrollPixelsPerFrame * delta * 60
+        y += velocity * delta * 60
+        clock.tick(maxfps)
         screen.blit(image, (x, y))
         screen.blit(text, (WIDTH - text.get_width() - 10, 10))
         if y > HEIGHT or y < 0 or isPotatoColliding():
@@ -139,14 +140,16 @@ while running:
             elif afterpause == "restart":
                 pipeColor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
                 x = 100
-                y = (HEIGHT // 2)
+                y = HEIGHT // 2
                 velocity = 0
                 scroll = 500
                 pipesPos = []
-                for i in range(100):
+
+                for i in range(pipeNumber):
                     randomY = random.randint(-100, 100)
                     pipesPos.append((100 + (i * PIPE_SPACING), 0 + randomY))
                     pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY))
+                
                 paused = False
         pygame.display.update()
 

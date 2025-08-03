@@ -1,6 +1,8 @@
+from PIL import Image
 import customtkinter as ctk
 from customtkinter import filedialog
 import shutil
+
 
 def start():
     def getSettings(key):
@@ -38,7 +40,6 @@ def start():
         
         if file_path:
             shutil.copyfile(file_path, "assets/font.ttf")
-            # subprocess.run(["cp", file_path, "assets/font.ttf"])    # this is deprecated and doesnt work on windows
     def upload_image():
         file_path = filedialog.askopenfilename(
             initialdir="/",
@@ -48,7 +49,11 @@ def start():
         
         if file_path:
             shutil.copyfile(file_path, "assets/potato.png")
-            # subprocess.run(["cp", file_path, "assets/potato.png"])  # this is deprecated and doesnt work on windows
+            img = Image.open("assets/potato.png")
+            img.save("assets/potato.ico", format='ICO', sizes=[(64, 64)])
+            img.resize((64, 64), Image.NEAREST)
+            img.save("assets/potato.png", format="PNG")
+            
 
 
     root = ctk.CTk()
@@ -59,6 +64,8 @@ def start():
     uploadFontButton.pack()
     uploadImageButton = ctk.CTkButton(root, text="Upload your own potato", command=upload_image, font=("assets/font.ttf", 12))
     uploadImageButton.pack()
+    
+    
     clarifylabel = ctk.CTkLabel(root, text="Speed", font=("assets/font.ttf", 12))
     clarifylabel.pack()
     scrollPixelsPerFrame = ctk.CTkEntry(root, font=("assets/font.ttf", 16))
@@ -79,8 +86,20 @@ def start():
         print("Error: jumpVelocity not found in settings.txt, using default value of 12")
     jumpVelocity.bind("<Return>", lambda event: setSettings("jumpVelocity", jumpVelocity.get()))
     jumpVelocity.pack()
-
+    
+    
+    clarifylabel = ctk.CTkLabel(root, text="Max FPS", font=("assets/font.ttf", 12))
+    clarifylabel.pack()
+    maxFps = ctk.CTkEntry(root, font=("assets/font.ttf", 16))
+    try:
+        maxFps.insert(0, int(getSettings("maxFps")))
+    except:
+        maxFps.insert(0, 120)
+        print("Error: maxFps not found in settings.txt, using default value of 120")
+    maxFps.bind("<Return>", lambda event: setSettings("maxFps", maxFps.get()))
+    maxFps.pack()
+    
 
     root.title("skakavi krompir settings")
-    root.geometry("300x200")
+    root.geometry("400x400")
     root.mainloop()

@@ -1,4 +1,3 @@
-# from PIL import Image
 import importlib.util
 import subprocess
 import sys
@@ -22,7 +21,4 @@ def checkifdepend():
 
     ensure_installed("customtkinter")
     ensure_installed("pygame")
-
-
-# img = Image.open("assets/potato.png")
-# img.save("assets/potato.ico", format='ICO', sizes=[(32, 32)])
+    ensure_installed("pillow", "PIL")

@@ -1,4 +1,5 @@
 import customtkinter as ctk
+retun = "Unnamed"
 def getname():
     def retuna():
         global retun

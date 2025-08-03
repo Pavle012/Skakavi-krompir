@@ -1,2 +1,3 @@
 scrollPixelsPerFrame=8
 jumpVelocity=8
+maxFps=30
