@@ -1,4 +1,4 @@
-import tkinter as tk
+import customtkinter as ctk
 import scores as scs
 import options
 returncode = "error"
@@ -15,13 +15,14 @@ def lose_screen():
         returncode = "restart"
         root.destroy()
     
-    root = tk.Tk()
-    loselabel = tk.Label(root, text="You lost!", font=("assets/font.ttf", 24))
+    root = ctk.CTk()
+    root.iconbitmap("assets/potato.ico")
+    loselabel = ctk.CTkLabel(root, text="You lost!", font=("assets/font.ttf", 24))
     loselabel.pack()
     root.title("skakavi krompir")
     root.geometry("300x200")
-    exitbutton = tk.Button(root, text="Exit", command=exit_game, font=("assets/font.ttf", 16))
-    restartbutton = tk.Button(root, text="Restart", command=restart, font=("assets/font.ttf", 16))
+    exitbutton = ctk.CTkButton(root, text="Exit", command=exit_game, font=("assets/font.ttf", 16))
+    restartbutton = ctk.CTkButton(root, text="Restart", command=restart, font=("assets/font.ttf", 16))
     restartbutton.pack()
     exitbutton.pack()
     root.mainloop()
@@ -47,15 +48,16 @@ def pause_screen():
         options.start()
     def scores():
         scs.start()
-    root = tk.Tk()
-    pauselabel = tk.Label(root, text="Paused", font=("assets/font.ttf", 24))
+    root = ctk.CTk()
+    root.iconbitmap("assets/potato.ico")
+    pauselabel = ctk.CTkLabel(root, text="Paused", font=("assets/font.ttf", 24))
     pauselabel.pack()
     root.title("skakavi krompir")
     root.geometry("340x300")
-    exitbutton = tk.Button(root, text="Exit", command=exit_game, font=("assets/font.ttf", 16))
-    resumebutton = tk.Button(root, text="Resume", command=resume, font=("assets/font.ttf", 16))
-    settingsbutton = tk.Button(root, text="Settings", command=settings, font=("assets/font.ttf", 16))
-    scorebutton = tk.Button(root, text="Scores", command=scores, font=("assets/font.ttf", 16))
+    exitbutton = ctk.CTkButton(root, text="Exit", command=exit_game, font=("assets/font.ttf", 16))
+    resumebutton = ctk.CTkButton(root, text="Resume", command=resume, font=("assets/font.ttf", 16))
+    settingsbutton = ctk.CTkButton(root, text="Settings", command=settings, font=("assets/font.ttf", 16))
+    scorebutton = ctk.CTkButton(root, text="Scores", command=scores, font=("assets/font.ttf", 16))
     scorebutton.pack()
     resumebutton.pack()
     exitbutton.pack()

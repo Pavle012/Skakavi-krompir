@@ -1,5 +1,5 @@
-import tkinter as tk
-from tkinter import filedialog
+import customtkinter as ctk
+from customtkinter import filedialog
 import shutil
 
 def start():
@@ -51,16 +51,17 @@ def start():
             # subprocess.run(["cp", file_path, "assets/potato.png"])  # this is deprecated and doesnt work on windows
 
 
-    root = tk.Tk()
-    settingsLabel = tk.Label(root, text="Settings", font=("assets/font.ttf", 24))
+    root = ctk.CTk()
+    root.iconbitmap("assets/potato.ico")
+    settingsLabel = ctk.CTkLabel(root, text="Settings", font=("assets/font.ttf", 24))
     settingsLabel.pack()
-    uploadFontButton = tk.Button(root, text="Upload Font", command=upload_font, font=("assets/font.ttf", 10))
+    uploadFontButton = ctk.CTkButton(root, text="Upload Font", command=upload_font, font=("assets/font.ttf", 12))
     uploadFontButton.pack()
-    uploadImageButton = tk.Button(root, text="Upload your own potato", command=upload_image, font=("assets/font.ttf", 10))
+    uploadImageButton = ctk.CTkButton(root, text="Upload your own potato", command=upload_image, font=("assets/font.ttf", 12))
     uploadImageButton.pack()
-    clarifylabel = tk.Label(root, text="Speed", font=("assets/font.ttf", 8))
+    clarifylabel = ctk.CTkLabel(root, text="Speed", font=("assets/font.ttf", 12))
     clarifylabel.pack()
-    scrollPixelsPerFrame = tk.Entry(root, font=("assets/font.ttf", 16))
+    scrollPixelsPerFrame = ctk.CTkEntry(root, font=("assets/font.ttf", 16))
     try: 
         scrollPixelsPerFrame.insert(0, int(getSettings("scrollPixelsPerFrame")))
     except:
@@ -68,9 +69,9 @@ def start():
         print("Error: scrollPixelsPerFrame not found in settings.txt, using default value of 2")
     scrollPixelsPerFrame.bind("<Return>", handle_enter_key)
     scrollPixelsPerFrame.pack()
-    clarifylabel = tk.Label(root, text="Jump height", font=("assets/font.ttf", 8))
+    clarifylabel = ctk.CTkLabel(root, text="Jump height", font=("assets/font.ttf", 12))
     clarifylabel.pack()
-    jumpVelocity = tk.Entry(root, font=("assets/font.ttf", 16))
+    jumpVelocity = ctk.CTkEntry(root, font=("assets/font.ttf", 16))
     try:
         jumpVelocity.insert(0, int(getSettings("jumpVelocity")))
     except:

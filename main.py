@@ -1,3 +1,6 @@
+import dependencies
+dependencies.checkifdepend()
+
 import pygame
 import gui
 import random
@@ -15,6 +18,7 @@ pygame.init()
 pygame.display.set_caption("skakavi krompir")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 image = pygame.image.load("assets/potato.png")
+pygame.display.set_icon(image)
 velocity = 0
 x = 100
 y = (HEIGHT // 2)
