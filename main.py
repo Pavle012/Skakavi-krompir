@@ -1,6 +1,7 @@
 import dependencies
 dependencies.checkifdepend()
 
+
 import pygame
 import gui
 import random
@@ -15,30 +16,12 @@ name = namecheck.getname()
 HEIGHT = 800
 WIDTH = 1200
 pygame.init()
+font = pygame.font.Font("assets/font.ttf", 36)
 pygame.display.set_caption("skakavi krompir")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 image = pygame.image.load("assets/potato.png")
 image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 pygame.display.set_icon(image)
-velocity = 0
-x = 100
-y = (HEIGHT // 2)
-maxfps = 60
-clock = pygame.time.Clock()
-paused = False
-points = 0
-font = pygame.font.Font("assets/font.ttf", 36)
-text_str = f"Points: {points}"
-text = font.render(text_str, True, (255, 255, 255))
-pipeNumber = 100
-scroll = 500
-PIPE_SPACING = 300
-pipesPos = []
-pipeColor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-for i in range(pipeNumber):
-    randomY = random.randint(-100, 100)
-    pipesPos.append((100 + (i * PIPE_SPACING), 0 + randomY))
-    pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY))
 
 ################################################
 ################### Classes ####################
@@ -54,7 +37,33 @@ class pipe:
 ################################################
 ################### Functions ##################
 ################################################
+
+
+def restart():
+    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor
+    reloadSettings()
+    velocity = 0
+    x = 100
+    y = (HEIGHT // 2)
+    maxfps = 60
+    clock = pygame.time.Clock()
+    paused = False
+    points = 0
+    text_str = f"Points: {points}"
+    text = font.render(text_str, True, (255, 255, 255))
+    pipeNumber = 100
+    scroll = 500
+    PIPE_SPACING = 300
+    pipesPos = []
+    pipeColor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+    for i in range(pipeNumber):
+        randomY = random.randint(-100, 100)
+        pipesPos.append((100 + (i * PIPE_SPACING), 0 + randomY))
+        pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY))
+
+
 def isPotatoColliding():
+    global x, y, pipesPos, scroll
     potatoRect = pygame.Rect(x, y, 2360 // 30, 1745 // 30)
     for px, py in pipesPos:
         realX = px + scroll
@@ -65,6 +74,7 @@ def isPotatoColliding():
 
 
 def spawnPipe():
+    global pipesPos, scroll, pipeColor, screen
     for px, py in pipesPos:
         realX = px + scroll
         pipe(realX, py).draw(screen)
@@ -79,9 +89,11 @@ def getSettings(key):
     return settings.get(key)
 
 def reloadSettings():
-    global scrollPixelsPerFrame, jumpVelocity
+    global scrollPixelsPerFrame, jumpVelocity, font
     scrollPixelsPerFrame = int(getSettings("scrollPixelsPerFrame")) if getSettings("scrollPixelsPerFrame") else 2
     jumpVelocity = int(getSettings("jumpVelocity")) if getSettings("jumpVelocity") else 12
+    maxfps = int(getSettings("maxFps")) if getSettings("maxFps") else 60
+    font = pygame.font.Font("assets/font.ttf", 36)
 
 def appendScore(score):
     with open("scores.txt", "a") as f:
@@ -90,8 +102,7 @@ def appendScore(score):
 ################################################
 ################### Main Loop ##################
 ################################################
-
-reloadSettings()
+restart()
 running = True
 
 while running:
@@ -138,18 +149,7 @@ while running:
             if afterpause == "exit":
                 running = False
             elif afterpause == "restart":
-                pipeColor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-                x = 100
-                y = HEIGHT // 2
-                velocity = 0
-                scroll = 500
-                pipesPos = []
-
-                for i in range(pipeNumber):
-                    randomY = random.randint(-100, 100)
-                    pipesPos.append((100 + (i * PIPE_SPACING), 0 + randomY))
-                    pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY))
-                
+                restart()
                 paused = False
         pygame.display.update()
 
