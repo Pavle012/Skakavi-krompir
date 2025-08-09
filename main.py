@@ -102,8 +102,10 @@ def appendScore(score):
 ################################################
 ################### Main Loop ##################
 ################################################
+
 restart()
 running = True
+just_resumed = False
 
 while running:
     for event in pygame.event.get():
@@ -118,7 +120,21 @@ while running:
                 if afterpause == "exit":
                     running = False
                 elif afterpause == "resume":
-                    paused = False
+                    # If potato is in a losing state, show lose screen immediately
+                    if y > HEIGHT or y < 0 or isPotatoColliding():
+                        appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
+                        reloadSettings()
+                        afterpause2 = gui.lose_screen()
+                        if afterpause2 == "exit":
+                            running = False
+                        elif afterpause2 == "restart":
+                            restart()
+                            paused = False
+                    else:
+                        velocity = 0
+                        clock.tick(maxfps)  # Reset clock to avoid large delta
+                        just_resumed = True
+                        paused = False
         if event.type == pygame.MOUSEBUTTONDOWN and not paused:
             velocity = -jumpVelocity
 
@@ -133,12 +149,16 @@ while running:
         text_str = f"Points: {points}"
         text = font.render(text_str, True, (255, 255, 255))
 
-        delta = clock.get_time() / 1000
+        if just_resumed:
+            clock.tick(maxfps)
+            just_resumed = False
+        else:
+            delta = clock.get_time() / 1000
+            velocity += 0.5 * delta * 60
+            scroll -= scrollPixelsPerFrame * delta * 60
+            y += velocity * delta * 60
+            clock.tick(maxfps)
 
-        velocity += 0.5 * delta * 60
-        scroll -= scrollPixelsPerFrame * delta * 60
-        y += velocity * delta * 60
-        clock.tick(maxfps)
         screen.blit(image, (x, y))
         screen.blit(text, (WIDTH - text.get_width() - 10, 10))
         if y > HEIGHT or y < 0 or isPotatoColliding():
