@@ -1,7 +1,7 @@
 import dependencies
 dependencies.checkifdepend()
 dependencies.install_configs()
-dependencies.fetch_assets()
+dependencies.fetch_assets()  # safe because folders are created and path is ready
 
 import pygame
 import gui

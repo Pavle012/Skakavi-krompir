@@ -73,6 +73,3 @@ def fetch_assets():
             print(f"Downloaded: {filename}")
         except requests.exceptions.RequestException as e:
             print(f"Failed to download {filename} from {url}: {e}")
-
-# Call the function to fetch assets
-fetch_assets()
