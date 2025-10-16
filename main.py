@@ -1,6 +1,7 @@
 import dependencies
 dependencies.checkifdepend()
-
+dependencies.install_configs()
+dependencies.fetch_assets()
 
 import pygame
 import gui
@@ -11,17 +12,6 @@ import datetime
 ###############################################
 ############ Flappy Bird-like Game ############
 ###############################################
-
-name = namecheck.getname()
-HEIGHT = 800
-WIDTH = 1200
-pygame.init()
-font = pygame.font.Font("assets/font.ttf", 36)
-pygame.display.set_caption("skakavi krompir")
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-image = pygame.image.load("assets/potato.png")
-image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
-pygame.display.set_icon(image)
 
 ################################################
 ################### Classes ####################
@@ -94,10 +84,32 @@ def reloadSettings():
     jumpVelocity = int(getSettings("jumpVelocity")) if getSettings("jumpVelocity") else 12
     maxfps = int(getSettings("maxFps")) if getSettings("maxFps") else 60
     font = pygame.font.Font("assets/font.ttf", 36)
+    rememberName = getSettings("rememberName") == "True"
+    
 
 def appendScore(score):
     with open("scores.txt", "a") as f:
         f.write(f"{score}\n")
+
+################################################
+##################### Init #####################
+################################################
+
+rememberName = getSettings("rememberName") == "True"
+
+if rememberName:
+    name = getSettings("name")###########################################################################################################  
+else:
+    name = namecheck.getname()
+HEIGHT = 800
+WIDTH = 1200
+pygame.init()
+font = pygame.font.Font("assets/font.ttf", 36)
+pygame.display.set_caption("skakavi krompir")
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+image = pygame.image.load("assets/potato.png")
+image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
+pygame.display.set_icon(image)
 
 ################################################
 ################### Main Loop ##################
@@ -145,7 +157,7 @@ while running:
         if (-scroll // PIPE_SPACING) < 0:
             points = 0
         else:
-            points = -scroll // PIPE_SPACING + 1
+            points = int(-scroll // PIPE_SPACING + 1)
         text_str = f"Points: {points}"
         text = font.render(text_str, True, (255, 255, 255))
 

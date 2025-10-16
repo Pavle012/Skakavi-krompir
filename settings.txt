@@ -1,3 +1,5 @@
 scrollPixelsPerFrame=8
 jumpVelocity=8
 maxFps=60
+rememberName=True
+name=Pavle
