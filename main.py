@@ -1,5 +1,11 @@
+import sys
 import dependencies
-dependencies.checkifdepend()
+
+if not getattr(sys, "frozen", False):  # not running as PyInstaller exe
+    dependencies.checkifdepend()
+
+dependencies.install_configs()
+
 dependencies.install_configs()
 dependencies.fetch_assets()  # safe because folders are created and path is ready
 
