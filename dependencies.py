@@ -54,8 +54,8 @@ def fetch_assets():
     folder_path = "./assets"
     
     assets = {
-        "font.ttf": "https://example.com/font.ttf",
-        "potato.png": "https://example.com/potato.png"
+        "font.ttf": "https://github.com/Pavle012/Skakavi-krompir/raw/refs/heads/main/assets/font.ttf",
+        "potato.png": "https://github.com/Pavle012/Skakavi-krompir/raw/refs/heads/main/assets/potato.png"
     }
 
     # Download each asset
