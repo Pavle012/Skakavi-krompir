@@ -8,6 +8,14 @@ import gui
 import random
 import namecheck
 import datetime
+from typing import Optional
+
+paused = False  # initialize before use because of type checking
+x = 100         # default x (restart() will overwrite)
+y = 0           # default y (restart() will overwrite)
+points = 0      # default points (restart() will overwrite)
+velocity = 0    # etc.
+scroll = 500
 
 ###############################################
 ############ Flappy Bird-like Game ############
@@ -69,7 +77,7 @@ def spawnPipe():
         realX = px + scroll
         pipe(realX, py).draw(screen)
 
-def getSettings(key):
+def getSettings(key: str) -> Optional[str]:
     settings = {}
     with open("settings.txt") as f:
         for line in f:
@@ -79,10 +87,20 @@ def getSettings(key):
     return settings.get(key)
 
 def reloadSettings():
-    global scrollPixelsPerFrame, jumpVelocity, font
-    scrollPixelsPerFrame = int(getSettings("scrollPixelsPerFrame")) if getSettings("scrollPixelsPerFrame") else 2
-    jumpVelocity = int(getSettings("jumpVelocity")) if getSettings("jumpVelocity") else 12
-    maxfps = int(getSettings("maxFps")) if getSettings("maxFps") else 60
+    global scrollPixelsPerFrame, jumpVelocity, font, maxfps
+    def _get_int_setting(key: str, default: int) -> int:
+        val = getSettings(key)
+        if val is None:
+            return default
+        try:
+            return int(val)
+        except ValueError:
+            print(f"Invalid integer for {key}: {val}. Using default {default}.", flush=True)
+            return default
+
+    scrollPixelsPerFrame = _get_int_setting("scrollPixelsPerFrame", 2)
+    jumpVelocity = _get_int_setting("jumpVelocity", 12)
+    maxfps = _get_int_setting("maxFps", 60)
     font = pygame.font.Font("assets/font.ttf", 36)
     rememberName = getSettings("rememberName") == "True"
     
