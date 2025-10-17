@@ -37,10 +37,6 @@ def install_configs():
     else:
         print(f"Folder '{folder_path}' already exists.")
     
-    fetch_assets()
-    
-    # to be continued
-
     default_settings_path = "./settings.txt"
     if not os.path.exists(default_settings_path):
         with open(default_settings_path, "w") as f:

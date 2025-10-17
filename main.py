@@ -4,6 +4,7 @@ import dependencies
 if not getattr(sys, "frozen", False):  # not running as PyInstaller exe
     dependencies.checkifdepend()
 
+dependencies.fetch_assets()
 dependencies.install_configs()
 
 import pygame
