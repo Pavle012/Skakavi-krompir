@@ -24,6 +24,7 @@ def checkifdepend():
     ensure_installed("customtkinter")
     ensure_installed("pygame")
     ensure_installed("pillow", "PIL")
+    ensure_installed("requests")
 
 
 def install_configs():
@@ -46,6 +47,8 @@ def install_configs():
             f.write("scrollPixelsPerFrame=8\n")
             f.write("jumpVelocity=8\n")
             f.write("maxFps=60\n")
+            f.write("rememberName=False\n")
+            f.write("name=User\n")
         print(f"Default settings file '{default_settings_path}' created.")
 
 def fetch_assets():
@@ -55,7 +58,8 @@ def fetch_assets():
     
     assets = {
         "font.ttf": "https://github.com/Pavle012/Skakavi-krompir/raw/refs/heads/main/assets/font.ttf",
-        "potato.png": "https://github.com/Pavle012/Skakavi-krompir/raw/refs/heads/main/assets/potato.png"
+        "potato.png": "https://github.com/Pavle012/Skakavi-krompir/raw/refs/heads/main/assets/potato.png",
+        "potato.ico": "https://github.com/Pavle012/Skakavi-krompir/raw/refs/heads/main/assets/potato.ico"
     }
 
     # Download each asset
