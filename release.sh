@@ -16,10 +16,19 @@ if [ -z "$version_number" ]; then
     exit 1
 fi
 
-# Create the tag
+# Ask for release name
+read -p "Enter the release name: " release_name
+
+# Validate input (basic validation, ensures it's not empty)
+if [ -z "$release_name" ]; then
+    echo "Release name cannot be empty. Aborting."
+    exit 1
+fi
+
+# Create the annotated tag
 tag_name="v${version_number}"
-echo "Creating git tag: ${tag_name}"
-git tag "$tag_name"
+echo "Creating git tag: ${tag_name} with message: ${release_name}"
+git tag -a "$tag_name" -m "$release_name"
 
 # Push the tag
 echo "Pushing tag to remote..."
