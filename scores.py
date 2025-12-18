@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import os
 import ast
+import dependencies
 
 def start():
     if not os.path.exists("scores.txt"):
@@ -19,7 +20,7 @@ def start():
                 pass
 
     root = ctk.CTk()
-    root.iconbitmap("assets/potato.ico")
+    root.iconbitmap(dependencies.resource_path("assets/potato.ico"))
     root.title("Scores")
     root.geometry("500x500")
 
@@ -31,15 +32,15 @@ def start():
     else:
         top_score, top_name, top_date = 0, "Nobody", "the creation of the project"
 
-    ctk.CTkLabel(root, text="All Scores", font=("assets/font.ttf", 24)).pack(pady=10)
+    ctk.CTkLabel(root, text="All Scores", font=(dependencies.resource_path("assets/font.ttf"), 24)).pack(pady=10)
     ctk.CTkLabel(
         root,
         text=f"Top Score: {top_score} by {top_name} at {top_date}",
-        font=("assets/font.ttf", 14)
+        font=(dependencies.resource_path("assets/font.ttf"), 14)
     ).pack(pady=5)
 
     for s, n, d in sorted(zip(scores, names, dates), reverse=True):
-        ctk.CTkLabel(root, text=f"{s} — {n} ({d})", font=("assets/font.ttf", 12)).pack()
+        ctk.CTkLabel(root, text=f"{s} — {n} ({d})", font=(dependencies.resource_path("assets/font.ttf"), 12)).pack()
 
     root.mainloop()
 

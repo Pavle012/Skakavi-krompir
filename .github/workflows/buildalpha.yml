@@ -18,7 +18,13 @@ jobs:
 
       - run: pip install pygame pyinstaller requests Pillow customtkinter
 
-      - run: pyinstaller --onefile main.py
+      - name: Build with PyInstaller on Windows
+        if: runner.os == 'Windows'
+        run: pyinstaller --onefile --add-data "assets;assets" main.py
+
+      - name: Build with PyInstaller on Linux
+        if: runner.os == 'Linux'
+        run: pyinstaller --onefile --add-data "assets:assets" main.py
 
       - uses: actions/upload-artifact@v4
         with:

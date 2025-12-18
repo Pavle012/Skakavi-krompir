@@ -105,7 +105,7 @@ def reloadSettings():
     scrollPixelsPerFrame = _get_int_setting("scrollPixelsPerFrame", 2)
     jumpVelocity = _get_int_setting("jumpVelocity", 12)
     maxfps = _get_int_setting("maxFps", 60)
-    font = pygame.font.Font("assets/font.ttf", 36)
+    font = pygame.font.Font(dependencies.resource_path("assets/font.ttf"), 36)
     rememberName = getSettings("rememberName") == "True"
     
 
@@ -126,10 +126,10 @@ else:
 HEIGHT = 800
 WIDTH = 1200
 pygame.init()
-font = pygame.font.Font("assets/font.ttf", 36)
+font = pygame.font.Font(dependencies.resource_path("assets/font.ttf"), 36)
 pygame.display.set_caption("skakavi krompir")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-image = pygame.image.load("assets/potato.png")
+image = pygame.image.load(dependencies.resource_path("assets/potato.png"))
 image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 pygame.display.set_icon(image)
 
