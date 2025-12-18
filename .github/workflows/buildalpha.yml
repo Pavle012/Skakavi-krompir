@@ -1,4 +1,4 @@
-name: Build game
+name: Build alpha
 
 on: [push]
 
