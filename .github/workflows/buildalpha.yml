@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - run: pip install pygame pyinstaller
+      - run: pip install pygame pyinstaller requests Pillow customtkinter
 
       - run: pyinstaller --onefile main.py
 
