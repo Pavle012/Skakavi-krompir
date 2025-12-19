@@ -1,11 +1,22 @@
 import customtkinter as ctk
+import dependencies
+import os
+import tkinter
+from PIL import Image, ImageTk
+
 retun = "Unnamed"
 def getname():
     def retuna():
         global retun
         retun = entry.get()
     root = ctk.CTk()
-    root.iconbitmap("assets/potato.ico")
+    
+    # Use iconphoto instead of iconbitmap
+    icon_path = dependencies.resource_path("assets/potato.png")
+    icon_image = Image.open(icon_path)
+    root.icon_photo = ImageTk.PhotoImage(icon_image)
+    root.iconphoto(True, root.icon_photo)
+
     root.title("Enter Your Name")
     label = ctk.CTkLabel(root, text="Please enter your name:")
     label.pack()
@@ -25,13 +36,15 @@ def getname():
 
     def setSettings(key, newValue):
         settings = {}
-        with open("settings.txt") as f:
-            for line in f:
-                if "=" in line:
-                    k, value = line.strip().split("=", 1)
-                    settings[k] = value
+        settings_path = os.path.join(dependencies.get_user_data_dir(), "settings.txt")
+        if os.path.exists(settings_path):
+            with open(settings_path) as f:
+                for line in f:
+                    if "=" in line:
+                        k, value = line.strip().split("=", 1)
+                        settings[k] = value
         settings[key] = newValue
-        with open("settings.txt", "w") as f:
+        with open(settings_path, "w") as f:
             for k, value in settings.items():
                 f.write(f"{k}={value}\n")
     

@@ -3,15 +3,15 @@ import dependencies
 
 if not getattr(sys, "frozen", False):  # not running as PyInstaller exe
     dependencies.checkifdepend()
-
-dependencies.fetch_assets()
-dependencies.install_configs()
+    dependencies.fetch_assets()
+    dependencies.install_configs()
 
 import pygame
 import gui
 import random
 import namecheck
 import datetime
+import os
 from typing import Optional
 
 paused = False  # initialize before use because of type checking
@@ -110,7 +110,8 @@ def reloadSettings():
     
 
 def appendScore(score):
-    with open("scores.txt", "a") as f:
+    scores_path = os.path.join(dependencies.get_user_data_dir(), "scores.txt")
+    with open(scores_path, "a") as f:
         f.write(f"{score}\n")
 
 ################################################

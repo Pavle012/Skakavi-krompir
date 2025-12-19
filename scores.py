@@ -2,13 +2,15 @@ import customtkinter as ctk
 import os
 import ast
 import dependencies
+from PIL import Image, ImageTk
 
 def start():
-    if not os.path.exists("scores.txt"):
-        open("scores.txt", "w").close()
+    scores_path = os.path.join(dependencies.get_user_data_dir(), "scores.txt")
+    if not os.path.exists(scores_path):
+        open(scores_path, "w").close()
 
     scores, names, dates = [], [], []
-    with open("scores.txt") as f:
+    with open(scores_path) as f:
         for line in f:
             try:
                 score_entry = ast.literal_eval(line.strip())
@@ -20,7 +22,10 @@ def start():
                 pass
 
     root = ctk.CTk()
-    root.iconbitmap(dependencies.resource_path("assets/potato.ico"))
+    icon_path = dependencies.resource_path("assets/potato.png")
+    icon_image = Image.open(icon_path)
+    root.icon_photo = ImageTk.PhotoImage(icon_image)
+    root.iconphoto(True, root.icon_photo)
     root.title("Scores")
     root.geometry("500x500")
 

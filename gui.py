@@ -2,6 +2,7 @@ import customtkinter as ctk
 import scores as scs
 import options
 import dependencies
+from PIL import Image, ImageTk
 returncode = "error"
 
 def lose_screen():
@@ -17,7 +18,10 @@ def lose_screen():
         root.destroy()
     
     root = ctk.CTk()
-    root.iconbitmap(dependencies.resource_path("assets/potato.ico"))
+    icon_path = dependencies.resource_path("assets/potato.png")
+    icon_image = Image.open(icon_path)
+    root.icon_photo = ImageTk.PhotoImage(icon_image)
+    root.iconphoto(True, root.icon_photo)
     loselabel = ctk.CTkLabel(root, text="You lost!", font=(dependencies.resource_path("assets/font.ttf"), 24))
     loselabel.pack()
     root.title("skakavi krompir")
@@ -51,7 +55,10 @@ def pause_screen():
     def scores():
         scs.start()
     root = ctk.CTk()
-    root.iconbitmap(dependencies.resource_path("assets/potato.ico"))
+    icon_path = dependencies.resource_path("assets/potato.png")
+    icon_image = Image.open(icon_path)
+    root.icon_photo = ImageTk.PhotoImage(icon_image)
+    root.iconphoto(True, root.icon_photo)
     pauselabel = ctk.CTkLabel(root, text="Paused", font=(dependencies.resource_path("assets/font.ttf"), 24))
     pauselabel.pack()
     root.title("skakavi krompir")

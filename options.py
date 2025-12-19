@@ -1,14 +1,18 @@
-from PIL import Image
+from PIL import Image, ImageTk
 import customtkinter as ctk
 from customtkinter import filedialog
 import shutil
 import dependencies
+import os
 
 
 def start():
     def getSettings(key):
         settings = {}
-        with open("settings.txt") as f:
+        settings_path = os.path.join(dependencies.get_user_data_dir(), "settings.txt")
+        if not os.path.exists(settings_path):
+            return None
+        with open(settings_path) as f:
             for line in f:
                 if "=" in line:
                     k, value = line.strip().split("=", 1)
@@ -18,13 +22,15 @@ def start():
 
     def setSettings(key, newValue):
         settings = {}
-        with open("settings.txt") as f:
-            for line in f:
-                if "=" in line:
-                    k, value = line.strip().split("=", 1)
-                    settings[k] = value
+        settings_path = os.path.join(dependencies.get_user_data_dir(), "settings.txt")
+        if os.path.exists(settings_path):
+            with open(settings_path) as f:
+                for line in f:
+                    if "=" in line:
+                        k, value = line.strip().split("=", 1)
+                        settings[k] = value
         settings[key] = newValue
-        with open("settings.txt", "w") as f:
+        with open(settings_path, "w") as f:
             for k, value in settings.items():
                 f.write(f"{k}={value}\n")
 
@@ -58,7 +64,10 @@ def start():
 
 
     root = ctk.CTk()
-    root.iconbitmap(dependencies.resource_path("assets/potato.ico"))
+    icon_path = dependencies.resource_path("assets/potato.png")
+    icon_image = Image.open(icon_path)
+    root.icon_photo = ImageTk.PhotoImage(icon_image)
+    root.iconphoto(True, root.icon_photo)
     settingsLabel = ctk.CTkLabel(root, text="Settings", font=(dependencies.resource_path("assets/font.ttf"), 24))
     settingsLabel.pack()
     uploadFontButton = ctk.CTkButton(root, text="Upload Font", command=upload_font, font=(dependencies.resource_path("assets/font.ttf"), 12))

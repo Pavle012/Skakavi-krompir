@@ -2,6 +2,7 @@ import importlib.util
 import subprocess
 import sys
 import os
+from PIL import Image
 
 
 def resource_path(relative_path):
@@ -13,6 +14,20 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
+
+def get_user_data_dir():
+    """ Get path to user data directory, create it if it doesn't exist """
+    app_name = "SkakaviKrompir"
+    if sys.platform == "win32":
+        data_dir = os.path.join(os.environ["APPDATA"], app_name)
+    else:
+        data_dir = os.path.join(os.path.expanduser("~"), ".local", "share", app_name)
+    
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+        
+    return data_dir
 
 
 def checkifdepend():
@@ -41,14 +56,7 @@ def checkifdepend():
 def install_configs():
     # install all assets and default settings
     
-    folder_path = "./assets"
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-        print(f"Folder '{folder_path}' created.")
-    else:
-        print(f"Folder '{folder_path}' already exists.")
-    
-    default_settings_path = "./settings.txt"
+    default_settings_path = os.path.join(get_user_data_dir(), "settings.txt")
     if not os.path.exists(default_settings_path):
         with open(default_settings_path, "w") as f:
             f.write("scrollPixelsPerFrame=8\n")
@@ -58,19 +66,35 @@ def install_configs():
             f.write("name=User\n")
         print(f"Default settings file '{default_settings_path}' created.")
 
+def generate_icon():
+    assets_dir = 'assets'
+    img_path = os.path.join(assets_dir, 'potato.png')
+    ico_path = os.path.join(assets_dir, 'potato.ico')
+
+    if os.path.exists(img_path):
+        img = Image.open(img_path)
+        img.save(ico_path, format='ICO', sizes=[(256, 256)])
+        print(f"Generated {ico_path} from {img_path}")
+    else:
+        print(f"Error: {img_path} not found.")
+
 def fetch_assets():
     import requests
     
     folder_path = "./assets"
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
     
     assets = {
         "font.ttf": "https://github.com/Pavle012/Skakavi-krompir/raw/refs/heads/main/assets/font.ttf",
-        "potato.png": "https://github.com/Pavle012/Skakavi-krompir/raw/refs/heads/main/assets/potato.png",
-        "potato.ico": "https://github.com/Pavle012/Skakavi-krompir/raw/refs/heads/main/assets/potato.ico"
+        "potato.png": "https://github.com/Pavle012/Skakavi-krompir/raw/refs/heads/main/assets/potato.png"
     }
 
     # Download each asset
     for filename, url in assets.items():
+        # only download if they dont exist
+        if os.path.exists(os.path.join(folder_path, filename)):
+            continue
         try:
             response = requests.get(url)
             response.raise_for_status()  # Check for HTTP errors
@@ -84,3 +108,5 @@ def fetch_assets():
             print(f"Downloaded: {filename}")
         except requests.exceptions.RequestException as e:
             print(f"Failed to download {filename} from {url}: {e}")
+            
+    generate_icon()
