@@ -4,7 +4,7 @@ import dependencies
 if not getattr(sys, "frozen", False):  # not running as PyInstaller exe
     dependencies.checkifdepend()
     dependencies.fetch_assets()
-    dependencies.install_configs()
+dependencies.install_configs()
 
 import pygame
 import gui
@@ -83,7 +83,8 @@ def spawnPipe():
 
 def getSettings(key: str) -> Optional[str]:
     settings = {}
-    with open("settings.txt") as f:
+    settings_path = os.path.join(dependencies.get_user_data_dir(), "settings.txt")
+    with open(settings_path) as f:
         for line in f:
             if "=" in line:
                 k, value = line.strip().split("=", 1)
