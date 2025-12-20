@@ -20,11 +20,11 @@ jobs:
 
       - name: Build with PyInstaller on Windows
         if: runner.os == 'Windows'
-        run: pyinstaller --onefile --name game --add-data "assets;assets" main.py
+        run: pyinstaller --onefile --name game --add-data "assets;assets" --hidden-import PIL._tkinter_finder main.py
 
       - name: Build with PyInstaller on Linux
         if: runner.os == 'Linux'
-        run: pyinstaller --onefile --name game --add-data "assets:assets" main.py
+        run: pyinstaller --onefile --name game --add-data "assets:assets" --hidden-import PIL._tkinter_finder main.py
 
       - name: Upload artifact - Windows
         if: runner.os == 'Windows'
