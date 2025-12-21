@@ -2,9 +2,8 @@ name: Bug Report
 description: File a bug report.
 title: "[Bug]: "
 labels: ["bug", "triage"]
-projects: ["octo-org/1", "octo-org/44"]
 assignees:
-  - octocat
+  - Pavle012
 body:
   - type: markdown
     attributes:
@@ -31,6 +30,13 @@ body:
       default: 3
     validations:
       required: true
+  - type: checkboxes
+    id: run_ways
+    attributes:
+      label: How are you running Skakavi krompir?
+      options:
+        - Via the compiled binary from the releases page
+        - Via the source code
   - type: dropdown
     id: browsers
     attributes:
