@@ -35,8 +35,10 @@ body:
     attributes:
       label: How are you running Skakavi krompir?
       options:
-        - Via the compiled binary from the releases page
-        - Via the source code
+        - label: Via the compiled binary from the releases page
+          value: Via the compiled binary from the releases page
+        - label: Via the source code
+          value: Via the source code
   - type: dropdown
     id: browsers
     attributes:
