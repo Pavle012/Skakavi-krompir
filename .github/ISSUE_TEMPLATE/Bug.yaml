@@ -43,9 +43,12 @@ body:
       label: What os are you seeing the problem on?
       multiple: true
       options:
-        - Linux
-        - Windows
-        - Other (unsupported right now)
+        - label: Linux
+          value: Linux
+        - label: Windows
+          value: Windows
+        - label: Other (unsupported right now)
+          value: Other
   - type: textarea
     id: logs
     attributes:
