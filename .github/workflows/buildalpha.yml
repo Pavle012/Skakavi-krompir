@@ -16,15 +16,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - run: pip install pygame pyinstaller requests Pillow customtkinter
+      - run: pip install pygame nuitka requests Pillow customtkinter
 
-      - name: Build with PyInstaller on Windows
+      - name: Build with Nuitka on Windows
         if: runner.os == 'Windows'
-        run: pyinstaller --onefile --name game --add-data "assets;assets" --hidden-import PIL._tkinter_finder main.py
+        run: |
+          python -m nuitka --onefile --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --include-module=PIL._tkinter_finder main.py
+          if not exist dist mkdir dist
+          move main.exe dist\game.exe
 
-      - name: Build with PyInstaller on Linux
+      - name: Build with Nuitka on Linux
         if: runner.os == 'Linux'
-        run: pyinstaller --onefile --name game --add-data "assets:assets" --hidden-import PIL._tkinter_finder main.py
+        run: |
+          python -m nuitka --onefile --include-data-dir=assets=assets --include-module=PIL._tkinter_finder main.py
+          mkdir -p dist
+          mv main dist/game
 
       - name: Upload artifact - Windows
         if: runner.os == 'Windows'
