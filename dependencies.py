@@ -2,7 +2,38 @@ import importlib.util
 import subprocess
 import sys
 import os
-from PIL import Image
+from PIL import Image, ImageTk # Added ImageTk
+
+
+global_icon_pil_image = None # Only global PIL Image
+
+
+def get_global_icon_photo_if_available():
+    if global_icon_pil_image is not None:
+        try:
+            # Always create a new PhotoImage instance
+            return ImageTk.PhotoImage(global_icon_pil_image)
+        except RuntimeError as e:
+            print(f"DEBUG: Could not create PhotoImage (Tkinter root not yet available): {e}")
+            return None # Ensure it's None if creation fails
+        except Exception as e:
+            print(f"Error creating PhotoImage: {e}")
+            return None
+    return None
+
+
+def load_global_icon_pil():
+    global global_icon_pil_image
+    icon_path = resource_path("assets/potato.png")
+    if os.path.exists(icon_path):
+        global_icon_pil_image = Image.open(icon_path)
+        # Also generate .ico from .png here for consistency
+        ico_path = resource_path("assets/potato.ico")
+        if not os.path.exists(ico_path):
+            global_icon_pil_image.save(ico_path, format='ICO', sizes=[(256, 256)])
+            print(f"Generated {ico_path} from {icon_path}")
+    else:
+        print(f"Warning: Icon file not found at {icon_path}. Application may not display icon.")
 
 
 def resource_path(relative_path):
