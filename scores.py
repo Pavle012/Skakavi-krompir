@@ -22,10 +22,11 @@ def start():
                 pass
 
     root = ctk.CTk()
-    icon_path = dependencies.resource_path("assets/potato.png")
-    icon_image = Image.open(icon_path)
-    root.icon_photo = ImageTk.PhotoImage(icon_image)
-    root.iconphoto(True, root.icon_photo)
+    # Use the globally loaded icon
+    icon_photo = dependencies.get_global_icon_photo_if_available()
+    if icon_photo:
+        root._icon_photo_ref = icon_photo # Keep a strong reference
+        root.iconphoto(True, icon_photo)
     root.title("Scores")
     root.geometry("500x500")
 

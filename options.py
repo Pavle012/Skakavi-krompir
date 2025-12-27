@@ -6,7 +6,7 @@ import dependencies
 import os
 
 
-def start():
+def options():
     def getSettings(key):
         settings = {}
         settings_path = os.path.join(dependencies.get_user_data_dir(), "settings.txt")
@@ -56,18 +56,19 @@ def start():
         
         if file_path:
             shutil.copyfile(file_path, dependencies.resource_path("assets/potato.png"))
-            img = Image.open(dependencies.resource_path("assets/potato.png"))
-            img.save(dependencies.resource_path("assets/potato.ico"), format='ICO', sizes=[(64, 64)])
-            img.resize((64, 64), Image.NEAREST)
-            img.save(dependencies.resource_path("assets/potato.png"), format="PNG")
+            with Image.open(dependencies.resource_path("assets/potato.png")) as img:
+                img.save(dependencies.resource_path("assets/potato.ico"), format='ICO', sizes=[(64, 64)])
+                img.resize((64, 64), Image.NEAREST)
+                img.save(dependencies.resource_path("assets/potato.png"), format="PNG")
             
 
 
     root = ctk.CTk()
-    icon_path = dependencies.resource_path("assets/potato.png")
-    icon_image = Image.open(icon_path)
-    root.icon_photo = ImageTk.PhotoImage(icon_image)
-    root.iconphoto(True, root.icon_photo)
+    # Use the globally loaded icon
+    icon_photo = dependencies.get_global_icon_photo_if_available()
+    if icon_photo:
+        root._icon_photo_ref = icon_photo # Keep a strong reference
+        root.iconphoto(True, icon_photo)
     settingsLabel = ctk.CTkLabel(root, text="Settings", font=(dependencies.resource_path("assets/font.ttf"), 24))
     settingsLabel.pack()
     uploadFontButton = ctk.CTkButton(root, text="Upload Font", command=upload_font, font=(dependencies.resource_path("assets/font.ttf"), 12))
@@ -113,3 +114,6 @@ def start():
     root.title("skakavi krompir settings")
     root.geometry("400x400")
     root.mainloop()
+
+def start():
+    options()
