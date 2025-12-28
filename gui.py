@@ -64,6 +64,12 @@ def pause_screen(root):
         options.start(root)
     def scores():
         scs.start(root)
+    def update():
+        import updater
+        import sys
+        game_executable_path = sys.argv[0]
+        updater.start_update(game_executable_path)
+        exit_game()
     
     # Use the globally loaded icon
     pil_icon = dependencies.get_global_icon_pil()
@@ -80,11 +86,13 @@ def pause_screen(root):
     resumebutton = ctk.CTkButton(toplevel, text="Resume", command=resume, font=(dependencies.get_font_path(), 16))
     exitbutton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
     settingsbutton = ctk.CTkButton(toplevel, text="Settings", command=settings, font=(dependencies.get_font_path(), 16))
+    updatebutton = ctk.CTkButton(toplevel, text="Update", command=update, font=(dependencies.get_font_path(), 16))
     scorebutton.pack()
     public_leaderboard_button.pack()
     resumebutton.pack()
     exitbutton.pack()
     settingsbutton.pack()
+    updatebutton.pack()
     toplevel.grab_set()
     toplevel.wait_window()
     return returncode
