@@ -4,3 +4,11 @@ scores.txt
 dist/*
 build/*
 main.spec
+*.build/
+*.dist/
+*.onefile-build/
+*.bin
+*.exe
+dist/
+__pycache__/
+*.pyc
