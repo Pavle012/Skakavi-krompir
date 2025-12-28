@@ -2,6 +2,7 @@ import importlib.util
 import subprocess
 import sys
 import os
+import shutil
 from PIL import Image, ImageTk # Added ImageTk
 
 
@@ -21,44 +22,45 @@ def is_compiled():
     return is_frozen or is_nuitka
 
 
-def get_global_icon_photo_if_available():
-    if global_icon_pil_image is not None:
-        try:
-            # Always create a new PhotoImage instance
-            return ImageTk.PhotoImage(global_icon_pil_image)
-        except RuntimeError as e:
-            print(f"DEBUG: Could not create PhotoImage (Tkinter root not yet available): {e}")
-            return None # Ensure it's None if creation fails
-        except Exception as e:
-            print(f"Error creating PhotoImage: {e}")
-            return None
-    return None
+def get_global_icon_pil():
+    """
+    Returns the global PIL Image object for the icon.
+    """
+    return global_icon_pil_image
 
 
 def load_global_icon_pil():
     global global_icon_pil_image
-    icon_path = resource_path("assets/potato.png")
+    icon_path = get_potato_path() # Use the new function to get the correct potato path
     if os.path.exists(icon_path):
         global_icon_pil_image = Image.open(icon_path)
         # Also generate .ico from .png here for consistency
-        ico_path = resource_path("assets/potato.ico")
+        ico_path = os.path.join(get_user_data_dir(), "potato.ico")
         if not os.path.exists(ico_path):
             global_icon_pil_image.save(ico_path, format='ICO', sizes=[(256, 256)])
             print(f"Generated {ico_path} from {icon_path}")
     else:
-        print(f"Warning: Icon file not found at {icon_path}. Application may not display icon.")
+        # Fallback to default if no custom/standard icon is found
+        default_icon_path = resource_path("assets/potato.png")
+        if os.path.exists(default_icon_path):
+            global_icon_pil_image = Image.open(default_icon_path)
+        else:
+            print(f"Warning: Icon file not found at {default_icon_path}. Application may not display icon.")
 
 
 def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
+    """ Get absolute path to resource, works for dev and for compiled executables """
+    if hasattr(sys, '_MEIPASS'):
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
-    except Exception:
+    elif is_compiled():
+        # For Nuitka and others, the assets are relative to the executable
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # Development mode
         base_path = os.path.abspath(".")
-
+        
     return os.path.join(base_path, relative_path)
-
 
 def get_user_data_dir():
     """ Get path to user data directory, create it if it doesn't exist """
@@ -72,6 +74,21 @@ def get_user_data_dir():
         os.makedirs(data_dir)
         
     return data_dir
+
+def get_potato_path():
+    """Get the path to the potato image, preferring the custom one if it exists."""
+    custom_potato_path = os.path.join(get_user_data_dir(), "potato.png")
+    if os.path.exists(custom_potato_path):
+        return custom_potato_path
+    return resource_path("assets/potato.png")
+
+
+def get_font_path():
+    """Get the path to the font file, preferring the custom one if it exists."""
+    custom_font_path = os.path.join(get_user_data_dir(), "font.ttf")
+    if os.path.exists(custom_font_path):
+        return custom_font_path
+    return resource_path("assets/font.ttf")
 
 
 def checkifdepend():
@@ -97,9 +114,21 @@ def checkifdepend():
     ensure_installed("requests")
 
 
+def copy_default_assets():
+    """Copy default assets to user data directory if they don't exist."""
+    user_data_dir = get_user_data_dir()
+    assets = ["potato.png", "font.ttf"]
+    for asset in assets:
+        dest_path = os.path.join(user_data_dir, asset)
+        if not os.path.exists(dest_path):
+            src_path = resource_path(os.path.join("assets", asset))
+            if os.path.exists(src_path):
+                shutil.copy(src_path, dest_path)
+                print(f"Copied {asset} to user data directory.")
+
 def install_configs():
     # install all assets and default settings
-    
+    copy_default_assets()
     default_settings_path = os.path.join(get_user_data_dir(), "settings.txt")
     if not os.path.exists(default_settings_path):
         with open(default_settings_path, "w") as f:
@@ -109,18 +138,6 @@ def install_configs():
             f.write("rememberName=False\n")
             f.write("name=User\n")
         print(f"Default settings file '{default_settings_path}' created.")
-
-def generate_icon():
-    assets_dir = 'assets'
-    img_path = os.path.join(assets_dir, 'potato.png')
-    ico_path = os.path.join(assets_dir, 'potato.ico')
-
-    if os.path.exists(img_path):
-        img = Image.open(img_path)
-        img.save(ico_path, format='ICO', sizes=[(256, 256)])
-        print(f"Generated {ico_path} from {img_path}")
-    else:
-        print(f"Error: {img_path} not found.")
 
 def fetch_assets():
     import requests
@@ -152,5 +169,3 @@ def fetch_assets():
             print(f"Downloaded: {filename}")
         except requests.exceptions.RequestException as e:
             print(f"Failed to download {filename} from {url}: {e}")
-            
-    generate_icon()

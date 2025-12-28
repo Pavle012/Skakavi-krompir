@@ -6,6 +6,7 @@ if not is_compiled():
     dependencies.checkifdepend()
     dependencies.fetch_assets()
 dependencies.install_configs()
+dependencies.load_global_icon_pil()
 
 import pygame
 import gui
@@ -43,7 +44,7 @@ class pipe:
 
 
 def restart():
-    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor
+    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image
     reloadSettings()
     velocity = 0
     x = 100
@@ -63,6 +64,10 @@ def restart():
         randomY = random.randint(-100, 100)
         pipesPos.append((100 + (i * PIPE_SPACING), 0 + randomY))
         pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY))
+    
+    # Reload the image in case it was changed
+    image = pygame.image.load(dependencies.get_potato_path())
+    image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 
 
 def isPotatoColliding():
@@ -107,7 +112,7 @@ def reloadSettings():
     scrollPixelsPerFrame = _get_int_setting("scrollPixelsPerFrame", 2)
     jumpVelocity = _get_int_setting("jumpVelocity", 12)
     maxfps = _get_int_setting("maxFps", 60)
-    font = pygame.font.Font(dependencies.resource_path("assets/font.ttf"), 36)
+    font = pygame.font.Font(dependencies.get_font_path(), 36)
     rememberName = getSettings("rememberName") == "True"
     
 
@@ -120,19 +125,25 @@ def appendScore(score):
 ##################### Init #####################
 ################################################
 
+import customtkinter as ctk
+
+# Create a hidden root window
+root = ctk.CTk()
+root.withdraw()
+
 rememberName = getSettings("rememberName") == "True"
 
 if rememberName:
-    name = getSettings("name")###########################################################################################################  
+    name = getSettings("name")
 else:
-    name = namecheck.getname()
+    name = namecheck.getname(root)
 HEIGHT = 800
 WIDTH = 1200
 pygame.init()
-font = pygame.font.Font(dependencies.resource_path("assets/font.ttf"), 36)
+font = pygame.font.Font(dependencies.get_font_path(), 36)
 pygame.display.set_caption("skakavi krompir")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-image = pygame.image.load(dependencies.resource_path("assets/potato.png"))
+image = pygame.image.load(dependencies.get_potato_path())
 image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 pygame.display.set_icon(image)
 
@@ -153,7 +164,7 @@ while running:
                 velocity = -jumpVelocity
             if event.key == pygame.K_ESCAPE:
                 paused = True
-                afterpause = gui.pause_screen()
+                afterpause = gui.pause_screen(root)
                 if afterpause == "exit":
                     running = False
                 elif afterpause == "resume":
@@ -161,7 +172,7 @@ while running:
                     if y > HEIGHT or y < 0 or isPotatoColliding():
                         appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
                         reloadSettings()
-                        afterpause2 = gui.lose_screen()
+                        afterpause2 = gui.lose_screen(root)
                         if afterpause2 == "exit":
                             running = False
                         elif afterpause2 == "restart":
@@ -202,7 +213,7 @@ while running:
             paused = True
             appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
             reloadSettings()
-            afterpause = gui.lose_screen()
+            afterpause = gui.lose_screen(root)
             if afterpause == "exit":
                 running = False
             elif afterpause == "restart":

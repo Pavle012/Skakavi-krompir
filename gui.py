@@ -5,34 +5,38 @@ import dependencies
 from PIL import Image, ImageTk
 returncode = "error"
 
-def lose_screen():
+def lose_screen(root):
     global returncode
+    toplevel = ctk.CTkToplevel(root)
+    toplevel.title("skakavi krompir")
+    toplevel.geometry("300x200")
+
     def exit_game():
         global returncode
         returncode = "exit"
-        root.destroy()
+        toplevel.destroy()
     
     def restart():
         global returncode
         returncode = "restart"
-        root.destroy()
+        toplevel.destroy()
     
-    root = ctk.CTk()
     # Use the globally loaded icon
-    icon_photo = dependencies.get_global_icon_photo_if_available()
-    if icon_photo:
-        root._icon_photo_ref = icon_photo # Keep a strong reference
-        root.iconphoto(True, icon_photo)
-    loselabel = ctk.CTkLabel(root, text="You lost!", font=(dependencies.resource_path("assets/font.ttf"), 24))
+    pil_icon = dependencies.get_global_icon_pil()
+    if pil_icon:
+        icon_photo = ImageTk.PhotoImage(pil_icon)
+        toplevel._icon_photo_ref = icon_photo # Keep a strong reference
+        toplevel.iconphoto(True, icon_photo)
+    loselabel = ctk.CTkLabel(toplevel, text="You lost!", font=(dependencies.get_font_path(), 24))
     loselabel.pack()
-    root.title("skakavi krompir")
-    root.geometry("300x200")
-    root.bind("<Return>", lambda e: restart())
-    restartbutton = ctk.CTkButton(root, text="Restart", command=restart, font=(dependencies.resource_path("assets/font.ttf"), 16))
-    exitbutton = ctk.CTkButton(root, text="Exit", command=exit_game, font=(dependencies.resource_path("assets/font.ttf"), 16))
+    
+    toplevel.bind("<Return>", lambda e: restart())
+    restartbutton = ctk.CTkButton(toplevel, text="Restart", command=restart, font=(dependencies.get_font_path(), 16))
+    exitbutton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
     restartbutton.pack()
     exitbutton.pack()
-    root.mainloop()
+    toplevel.grab_set()
+    toplevel.wait_window()
     if returncode == "exit":
         return "exit"
     elif returncode == "restart":
@@ -40,38 +44,43 @@ def lose_screen():
 
 
 
-def pause_screen():
+def pause_screen(root):
     global returncode
+    toplevel = ctk.CTkToplevel(root)
+    toplevel.title("skakavi krompir")
+    toplevel.geometry("340x300")
+    
     def exit_game():
         global returncode
         returncode = "exit"
-        root.destroy()
+        toplevel.destroy()
     def resume():
         global returncode
         returncode = "resume"
-        root.destroy()
+        toplevel.destroy()
     def settings():
-        options.start()
+        options.start(root)
     def scores():
-        scs.start()
-    root = ctk.CTk()
+        scs.start(root)
+    
     # Use the globally loaded icon
-    icon_photo = dependencies.get_global_icon_photo_if_available()
-    if icon_photo:
-        root._icon_photo_ref = icon_photo # Keep a strong reference
-        root.iconphoto(True, icon_photo)
-    pauselabel = ctk.CTkLabel(root, text="Paused", font=(dependencies.resource_path("assets/font.ttf"), 24))
+    pil_icon = dependencies.get_global_icon_pil()
+    if pil_icon:
+        icon_photo = ImageTk.PhotoImage(pil_icon)
+        toplevel._icon_photo_ref = icon_photo # Keep a strong reference
+        toplevel.iconphoto(True, icon_photo)
+    pauselabel = ctk.CTkLabel(toplevel, text="Paused", font=(dependencies.get_font_path(), 24))
     pauselabel.pack()
-    root.title("skakavi krompir")
-    root.geometry("340x300")
-    root.bind("<Escape>", lambda e: resume())
-    scorebutton = ctk.CTkButton(root, text="Scores", command=scores, font=(dependencies.resource_path("assets/font.ttf"), 16))
-    resumebutton = ctk.CTkButton(root, text="Resume", command=resume, font=(dependencies.resource_path("assets/font.ttf"), 16))
-    exitbutton = ctk.CTkButton(root, text="Exit", command=exit_game, font=(dependencies.resource_path("assets/font.ttf"), 16))
-    settingsbutton = ctk.CTkButton(root, text="Settings", command=settings, font=(dependencies.resource_path("assets/font.ttf"), 16))
+    
+    toplevel.bind("<Escape>", lambda e: resume())
+    scorebutton = ctk.CTkButton(toplevel, text="Scores", command=scores, font=(dependencies.get_font_path(), 16))
+    resumebutton = ctk.CTkButton(toplevel, text="Resume", command=resume, font=(dependencies.get_font_path(), 16))
+    exitbutton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
+    settingsbutton = ctk.CTkButton(toplevel, text="Settings", command=settings, font=(dependencies.get_font_path(), 16))
     scorebutton.pack()
     resumebutton.pack()
     exitbutton.pack()
     settingsbutton.pack()
-    root.mainloop()
+    toplevel.grab_set()
+    toplevel.wait_window()
     return returncode

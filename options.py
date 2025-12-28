@@ -6,7 +6,11 @@ import dependencies
 import os
 
 
-def options():
+def options(root):
+    toplevel = ctk.CTkToplevel(root)
+    toplevel.title("skakavi krompir settings")
+    toplevel.geometry("400x400")
+
     def getSettings(key):
         settings = {}
         settings_path = os.path.join(dependencies.get_user_data_dir(), "settings.txt")
@@ -46,7 +50,9 @@ def options():
         )
         
         if file_path:
-            shutil.copyfile(file_path, dependencies.resource_path("assets/font.ttf"))
+            shutil.copyfile(file_path, os.path.join(dependencies.get_user_data_dir(), "font.ttf"))
+            # No need to reload anything for the font, it will be used on next app start
+    
     def upload_image():
         file_path = filedialog.askopenfilename(
             initialdir="/",
@@ -55,31 +61,40 @@ def options():
         )
         
         if file_path:
-            shutil.copyfile(file_path, dependencies.resource_path("assets/potato.png"))
-            with Image.open(dependencies.resource_path("assets/potato.png")) as img:
-                img.save(dependencies.resource_path("assets/potato.ico"), format='ICO', sizes=[(64, 64)])
-                img.resize((64, 64), Image.NEAREST)
-                img.save(dependencies.resource_path("assets/potato.png"), format="PNG")
+            custom_potato_path = os.path.join(dependencies.get_user_data_dir(), "potato.png")
+            custom_ico_path = os.path.join(dependencies.get_user_data_dir(), "potato.ico")
             
+            shutil.copyfile(file_path, custom_potato_path)
+            
+            with Image.open(custom_potato_path) as img:
+                img.save(custom_ico_path, format='ICO', sizes=[(64, 64)])
+                # The image is already resized by the main game loop, no need to resize here
+            
+            # Reload the global icon to reflect the change immediately
+            dependencies.load_global_icon_pil()
+            pil_icon = dependencies.get_global_icon_pil()
+            if pil_icon:
+                new_icon = ImageTk.PhotoImage(pil_icon)
+                toplevel.iconphoto(True, new_icon)
 
-
-    root = ctk.CTk()
+    
     # Use the globally loaded icon
-    icon_photo = dependencies.get_global_icon_photo_if_available()
-    if icon_photo:
-        root._icon_photo_ref = icon_photo # Keep a strong reference
-        root.iconphoto(True, icon_photo)
-    settingsLabel = ctk.CTkLabel(root, text="Settings", font=(dependencies.resource_path("assets/font.ttf"), 24))
+    pil_icon = dependencies.get_global_icon_pil()
+    if pil_icon:
+        icon_photo = ImageTk.PhotoImage(pil_icon)
+        toplevel._icon_photo_ref = icon_photo # Keep a strong reference
+        toplevel.iconphoto(True, icon_photo)
+    settingsLabel = ctk.CTkLabel(toplevel, text="Settings", font=(dependencies.get_font_path(), 24))
     settingsLabel.pack()
-    uploadFontButton = ctk.CTkButton(root, text="Upload Font", command=upload_font, font=(dependencies.resource_path("assets/font.ttf"), 12))
+    uploadFontButton = ctk.CTkButton(toplevel, text="Upload Font", command=upload_font, font=(dependencies.get_font_path(), 12))
     uploadFontButton.pack()
-    uploadImageButton = ctk.CTkButton(root, text="Upload your own potato", command=upload_image, font=(dependencies.resource_path("assets/font.ttf"), 12))
+    uploadImageButton = ctk.CTkButton(toplevel, text="Upload your own potato", command=upload_image, font=(dependencies.get_font_path(), 12))
     uploadImageButton.pack()
     
     
-    clarifylabel = ctk.CTkLabel(root, text="Speed", font=(dependencies.resource_path("assets/font.ttf"), 12))
+    clarifylabel = ctk.CTkLabel(toplevel, text="Speed", font=(dependencies.get_font_path(), 12))
     clarifylabel.pack()
-    scrollPixelsPerFrame = ctk.CTkEntry(root, font=(dependencies.resource_path("assets/font.ttf"), 16))
+    scrollPixelsPerFrame = ctk.CTkEntry(toplevel, font=(dependencies.get_font_path(), 16))
     try: 
         scrollPixelsPerFrame.insert(0, int(getSettings("scrollPixelsPerFrame")))
     except:
@@ -87,9 +102,9 @@ def options():
         print("Error: scrollPixelsPerFrame not found in settings.txt, using default value of 2")
     scrollPixelsPerFrame.bind("<Return>", handle_enter_key)
     scrollPixelsPerFrame.pack()
-    clarifylabel = ctk.CTkLabel(root, text="Jump height", font=(dependencies.resource_path("assets/font.ttf"), 12))
+    clarifylabel = ctk.CTkLabel(toplevel, text="Jump height", font=(dependencies.get_font_path(), 12))
     clarifylabel.pack()
-    jumpVelocity = ctk.CTkEntry(root, font=(dependencies.resource_path("assets/font.ttf"), 16))
+    jumpVelocity = ctk.CTkEntry(toplevel, font=(dependencies.get_font_path(), 16))
     try:
         jumpVelocity.insert(0, int(getSettings("jumpVelocity")))
     except:
@@ -99,9 +114,9 @@ def options():
     jumpVelocity.pack()
     
     
-    clarifylabel = ctk.CTkLabel(root, text="Max FPS", font=(dependencies.resource_path("assets/font.ttf"), 12))
+    clarifylabel = ctk.CTkLabel(toplevel, text="Max FPS", font=(dependencies.get_font_path(), 12))
     clarifylabel.pack()
-    maxFps = ctk.CTkEntry(root, font=(dependencies.resource_path("assets/font.ttf"), 16))
+    maxFps = ctk.CTkEntry(toplevel, font=(dependencies.get_font_path(), 16))
     try:
         maxFps.insert(0, int(getSettings("maxFps")))
     except:
@@ -110,10 +125,9 @@ def options():
     maxFps.bind("<Return>", lambda event: setSettings("maxFps", maxFps.get()))
     maxFps.pack()
     
+    toplevel.grab_set()
+    toplevel.wait_window()
 
-    root.title("skakavi krompir settings")
-    root.geometry("400x400")
-    root.mainloop()
 
-def start():
-    options()
+def start(root):
+    options(root)

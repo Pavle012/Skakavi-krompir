@@ -5,34 +5,39 @@ import tkinter
 from PIL import Image, ImageTk
 
 retun = "Unnamed"
-def getname():
+def getname(root):
+    toplevel = ctk.CTkToplevel(root)
+    toplevel.title("Enter Your Name")
+    toplevel.geometry("300x200")
+    
     def retuna():
         global retun
         retun = entry.get()
-    root = ctk.CTk()
+        toplevel.destroy()
     
-    # Use iconphoto instead of iconbitmap
-    icon_path = dependencies.resource_path("assets/potato.png")
-    icon_image = Image.open(icon_path)
-    root.icon_photo = ImageTk.PhotoImage(icon_image)
-    root.iconphoto(True, root.icon_photo)
+    # Use the globally loaded icon
+    pil_icon = dependencies.get_global_icon_pil()
+    if pil_icon:
+        icon_photo = ImageTk.PhotoImage(pil_icon)
+        toplevel._icon_photo_ref = icon_photo # Keep a strong reference
+        toplevel.iconphoto(True, icon_photo)
 
-    root.title("Enter Your Name")
-    label = ctk.CTkLabel(root, text="Please enter your name:")
+    
+    label = ctk.CTkLabel(toplevel, text="Please enter your name:", font=(dependencies.get_font_path(), 16))
     label.pack()
-    root.geometry("300x200")
-    entry = ctk.CTkEntry(root)
+    entry = ctk.CTkEntry(toplevel, font=(dependencies.get_font_path(), 12))
     entry.pack()
-    rememberCheck = ctk.CTkCheckBox(root, text="Remember name")
+    rememberCheck = ctk.CTkCheckBox(toplevel, text="Remember name", font=(dependencies.get_font_path(), 12))
     rememberCheck.pack()
-    done_button = ctk.CTkButton(root, text="Save", command=retuna)
+    done_button = ctk.CTkButton(toplevel, text="Save", command=retuna, font=(dependencies.get_font_path(), 12))
     done_button.pack()
-    exit_button = ctk.CTkButton(root, text="Exit", command=root.destroy)
+    exit_button = ctk.CTkButton(toplevel, text="Exit", command=toplevel.destroy, font=(dependencies.get_font_path(), 12))
     exit_button.pack()
-    root.bind('<Return>', lambda event: retuna())
-    root.bind('<Escape>', lambda event: root.destroy())
-    root.focus_set()
-    root.mainloop()
+    toplevel.bind('<Return>', lambda event: retuna())
+    toplevel.bind('<Escape>', lambda event: toplevel.destroy())
+    toplevel.focus_set()
+    toplevel.grab_set()
+    toplevel.wait_window()
 
     def setSettings(key, newValue):
         settings = {}
@@ -49,9 +54,9 @@ def getname():
                 f.write(f"{k}={value}\n")
     
     if rememberCheck.get():
-        setSettings("rememberName", True)
+        setSettings("rememberName", "True")
         setSettings("name", retun)
     else:
-        setSettings("rememberName", False)
+        setSettings("rememberName", "False")
     
     return retun
