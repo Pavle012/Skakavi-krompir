@@ -3,8 +3,7 @@
 # works by downloading the latest version from github and replacing the current one
 # should only work for compiled version of the game
 
-# This script assumes the game executable is named "Skakavi Krompir-Linux"
-# and is located in the same directory as this script.
+# This script takes one argument: the path to the game executable to update.
 
 set -e # exit on error
 
@@ -13,19 +12,21 @@ set -e # exit on error
 REPO="Pavle012/Skakavi-krompir"
 # The name of the release asset to download
 ASSET_NAME="Skakavi Krompir-Linux"
-# The name of the game executable to be replaced
-GAME_EXECUTABLE="Skakavi Krompir-Linux"
 # ---------------------
 
 API_URL="https://api.github.com/repos/$REPO/releases/latest"
 
-# Get the directory where the script is located
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-GAME_PATH="$SCRIPT_DIR/$GAME_EXECUTABLE"
+# Check for game path argument
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <path_to_game_executable>"
+    exit 1
+fi
+
+GAME_PATH=$1
+GAME_FILENAME=$(basename "$GAME_PATH")
 
 if [ ! -f "$GAME_PATH" ]; then
     echo "Error: Game executable not found at '$GAME_PATH'"
-    echo "Please make sure the updater is in the same directory as the game executable ('$GAME_EXECUTABLE')."
     exit 1
 fi
 
@@ -57,5 +58,7 @@ chmod +x "$TEMP_FILE"
 # Replace the old game executable with the new one
 mv "$TEMP_FILE" "$GAME_PATH"
 
-echo "Update complete! '$GAME_EXECUTABLE' has been updated to the latest version."
-echo "You can now run the game."
+echo "Update complete! '$GAME_FILENAME' has been updated to the latest version."
+echo "Running the game now..."
+# Run the updated game
+"$GAME_PATH"
