@@ -11,7 +11,7 @@ set -e # exit on error
 # GitHub repository in the format OWNER/REPO
 REPO="Pavle012/Skakavi-krompir"
 # The name of the release asset to download
-ASSET_NAME="Skakavi Krompir-Linux"
+ASSET_NAME="Skakavi-Krompir-Linux"
 # ---------------------
 
 API_URL="https://api.github.com/repos/$REPO/releases/latest"
