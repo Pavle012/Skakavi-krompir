@@ -190,20 +190,22 @@ def create_shortcut():
             start_menu = winshell.start_menu()
             shortcut_path = os.path.join(start_menu, f"{app_name}.lnk")
             
-            if not os.path.exists(shortcut_path):
-                shell = Dispatch('WScript.Shell')
-                shortcut = shell.CreateShortCut(shortcut_path)
-                shortcut.Targetpath = app_path
-                shortcut.WorkingDirectory = os.path.dirname(app_path)
-                shortcut.IconLocation = icon_path
-                shortcut.save()
-                print(f"Created shortcut at {shortcut_path}")
+            if os.path.exists(shortcut_path):
+                os.remove(shortcut_path)
+
+            shell = Dispatch('WScript.Shell')
+            shortcut = shell.CreateShortCut(shortcut_path)
+            shortcut.Targetpath = app_path
+            shortcut.WorkingDirectory = os.path.dirname(app_path)
+            shortcut.IconLocation = icon_path
+            shortcut.save()
+            print(f"Created shortcut at {shortcut_path}")
 
         elif sys.platform == "linux":
             # This part is for Linux
             app_name = "Skakavi Krompir"
-            app_path = sys.executable  # Use sys.executable for the compiled app path
-            icon_path = get_potato_path()
+            app_path = sys.argv[0]  # Use sys.argv[0] for the compiled app path
+            icon_path = os.path.abspath(get_potato_path())
             
             desktop_entry = f"""
             [Desktop Entry]
@@ -220,9 +222,11 @@ def create_shortcut():
                 os.makedirs(applications_dir)
             
             desktop_file_path = os.path.join(applications_dir, f"{app_name}.desktop")
-            if not os.path.exists(desktop_file_path):
-                with open(desktop_file_path, "w") as f:
-                    f.write(desktop_entry)
-                print(f"Created desktop entry at {desktop_file_path}")
+            if os.path.exists(desktop_file_path):
+                os.remove(desktop_file_path)
+
+            with open(desktop_file_path, "w") as f:
+                f.write(desktop_entry)
+            print(f"Created desktop entry at {desktop_file_path}")
     else:
         print("Application not compiled. Skipping shortcut creation.")
