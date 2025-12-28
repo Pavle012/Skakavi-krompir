@@ -8,8 +8,6 @@ rm -rf dist
 mkdir -p dist
 
 # 3. Build it
-export CCACHE_DIR=~/.ccache
-export PATH=/usr/lib/ccache:$PATH
 python3 -m nuitka --onefile \
     --jobs=4 \
     --include-data-dir=assets=assets \

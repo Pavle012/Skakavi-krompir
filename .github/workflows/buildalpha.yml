@@ -16,24 +16,19 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Set up ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          key: ${{ github.job }}-${{ matrix.os }}-alpha
-
       - run: pip install pygame nuitka requests Pillow customtkinter
 
       - name: Build with Nuitka on Windows
         if: runner.os == 'Windows'
         run: |
-          python -m nuitka --onefile --jobs=1 --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --assume-yes-for-downloads --enable-plugin=tk-inter,ccache main.py
+          python -m nuitka --onefile --jobs=1 --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --assume-yes-for-downloads --enable-plugin=tk-inter main.py
           if (!(Test-Path dist)) { New-Item -ItemType Directory -Path dist }
           Move-Item main.exe dist/game.exe
 
       - name: Build with Nuitka on Linux
         if: runner.os == 'Linux'
         run: |
-          python -m nuitka --onefile --include-data-dir=assets=assets --enable-plugin=tk-inter,ccache main.py
+          python -m nuitka --onefile --include-data-dir=assets=assets --enable-plugin=tk-inter main.py
           mkdir -p dist
           mv main.bin dist/game
 
