@@ -33,8 +33,10 @@ def lose_screen(root):
     toplevel.bind("<Return>", lambda e: restart())
     restartbutton = ctk.CTkButton(toplevel, text="Restart", command=restart, font=(dependencies.get_font_path(), 16))
     exitbutton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
+    public_button = ctk.CTkButton(toplevel, text="Public Leaderboard", command=lambda: scs.start_public(root), font=(dependencies.get_font_path(), 16))
     restartbutton.pack()
     exitbutton.pack()
+    public_button.pack()
     toplevel.grab_set()
     toplevel.wait_window()
     if returncode == "exit":
@@ -74,10 +76,12 @@ def pause_screen(root):
     
     toplevel.bind("<Escape>", lambda e: resume())
     scorebutton = ctk.CTkButton(toplevel, text="Scores", command=scores, font=(dependencies.get_font_path(), 16))
+    public_leaderboard_button = ctk.CTkButton(toplevel, text="Public Leaderboard", command=lambda: scs.start_public(root), font=(dependencies.get_font_path(), 16))
     resumebutton = ctk.CTkButton(toplevel, text="Resume", command=resume, font=(dependencies.get_font_path(), 16))
     exitbutton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
     settingsbutton = ctk.CTkButton(toplevel, text="Settings", command=settings, font=(dependencies.get_font_path(), 16))
     scorebutton.pack()
+    public_leaderboard_button.pack()
     resumebutton.pack()
     exitbutton.pack()
     settingsbutton.pack()

@@ -10,6 +10,7 @@ dependencies.load_global_icon_pil()
 
 import pygame
 import gui
+import scores
 import random
 import namecheck
 import datetime
@@ -55,7 +56,7 @@ def restart():
     points = 0
     text_str = f"Points: {points}"
     text = font.render(text_str, True, (255, 255, 255))
-    pipeNumber = 100
+    pipeNumber = 500
     scroll = 500
     PIPE_SPACING = 300
     pipesPos = []
@@ -176,6 +177,7 @@ while running:
                     # If potato is in a losing state, show lose screen immediately
                     if y > HEIGHT or y < 0 or isPotatoColliding():
                         appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
+                        scores.submit_score(name, points)
                         reloadSettings()
                         afterpause2 = gui.lose_screen(root)
                         if afterpause2 == "exit":
@@ -217,6 +219,7 @@ while running:
         if y > HEIGHT or y < 0 or isPotatoColliding():
             paused = True
             appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
+            scores.submit_score(name, points)
             reloadSettings()
             afterpause = gui.lose_screen(root)
             if afterpause == "exit":
