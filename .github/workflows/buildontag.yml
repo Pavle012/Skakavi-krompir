@@ -23,11 +23,11 @@ jobs:
 
       - name: Build with Nuitka on Windows
         if: runner.os == 'Windows'
-        run: python -m nuitka --onefile --jobs=1 --output-dir=dist --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --assume-yes-for-downloads main.py
+        run: python -m nuitka --onefile --jobs=1 --output-dir=dist --output-filename="Skakavi Krompir-Windows" --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --assume-yes-for-downloads --enable-plugin=tk-inter main.py
 
       - name: Build with Nuitka on Linux
         if: runner.os == 'Linux'
-        run: python -m nuitka --onefile --output-dir=dist --include-data-dir=assets=assets main.py
+        run: python -m nuitka --onefile --output-dir=dist --output-filename="Skakavi Krompir-Linux" --include-data-dir=assets=assets --enable-plugin=tk-inter main.py
 
       - uses: actions/upload-artifact@v4
         with:
