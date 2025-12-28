@@ -4,6 +4,7 @@ import urllib.request
 import subprocess
 import tempfile
 import sys
+from subprocess import DEVNULL
 
 def start_update(game_executable_path):
     """
@@ -19,10 +20,17 @@ def start_update(game_executable_path):
     Args:
         game_executable_path (str): The absolute path to the game executable to be replaced.
     """
+    popen_kwargs = {}
     if platform.system() == "Linux":
         url = "https://raw.githubusercontent.com/Pavle012/Skakavi-krompir/main/updater.sh"
         file_extension = ".sh"
         run_command = ["bash"]
+        popen_kwargs = {
+            "stdin": DEVNULL,
+            "stdout": DEVNULL,
+            "stderr": DEVNULL,
+            "preexec_fn": os.setsid,
+        }
     elif platform.system() == "Windows":
         # Assuming updater.bat exists and works similarly to updater.sh
         url = "https://raw.githubusercontent.com/Pavle012/Skakavi-krompir/main/updater.bat"
@@ -53,7 +61,7 @@ def start_update(game_executable_path):
 
         # Use Popen to run the updater in a new, independent process.
         # This allows the main application to exit while the updater continues.
-        subprocess.Popen(command)
+        subprocess.Popen(command, **popen_kwargs)
 
     except Exception as e:
         print(f"An error occurred during the update process: {e}", file=sys.stderr)
