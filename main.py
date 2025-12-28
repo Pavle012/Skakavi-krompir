@@ -72,15 +72,33 @@ def restart():
     image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 
 
-def isPotatoColliding():
-    global x, y, pipesPos, scroll
-    potatoRect = pygame.Rect(x, y, 2360 // 30, 1745 // 30)
+def isPotatoColliding(potato_surface, potato_rect):
+    global pipesPos, scroll
+    # Create a mask from the rotated potato surface.
+    potato_mask = pygame.mask.from_surface(potato_surface)
+
+    # Iterate over each pipe.
     for px, py in pipesPos:
         realX = px + scroll
-        pipeRect = pygame.Rect(realX, py, 50, 300)
-        if potatoRect.colliderect(pipeRect):
-            return True
-    return False
+        pipe_rect = pygame.Rect(realX, py, 50, 300)
+
+        # First, a simple and fast bounding box check to see if they are even close.
+        if not potato_rect.colliderect(pipe_rect):
+            continue
+
+        # If the bounding boxes overlap, perform a more accurate (and slower) pixel-perfect collision check.
+        # Create a mask for the pipe (a simple filled rectangle).
+        pipe_mask = pygame.mask.Mask((50, 300), fill=True)
+        
+        # Calculate the offset between the potato and the pipe. This is the relative position
+        # of the pipe's top-left corner from the potato's top-left corner.
+        offset = (pipe_rect.x - potato_rect.x, pipe_rect.y - potato_rect.y)
+
+        # Check for overlap between the masks.
+        if potato_mask.overlap(pipe_mask, offset):
+            return True # Collision detected
+
+    return False # No collision
 
 
 def spawnPipe():
@@ -176,7 +194,10 @@ while running:
                     running = False
                 elif afterpause == "resume":
                     # If potato is in a losing state, show lose screen immediately
-                    if y > HEIGHT or y < 0 or isPotatoColliding():
+                    angle = max(min(velocity * -2.5, 30), -90)
+                    rotated_image_on_resume = pygame.transform.rotate(image, angle)
+                    rotated_rect_on_resume = rotated_image_on_resume.get_rect(center=image.get_rect(topleft=(x, y)).center)
+                    if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image_on_resume, rotated_rect_on_resume):
                         appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
                         scores.submit_score(name, points)
                         reloadSettings()
@@ -215,9 +236,18 @@ while running:
             y += velocity * delta * 60
             clock.tick(maxfps)
 
-        screen.blit(image, (x, y))
+        # --- Rotation and Drawing ---
+        # Calculate rotation angle based on vertical velocity.
+        angle = max(min(velocity * -2.5, 30), -90)
+        # Rotate the master image.
+        rotated_image = pygame.transform.rotate(image, angle)
+        # Create a new rect for the rotated image, ensuring its center matches the player's logical position.
+        rotated_rect = rotated_image.get_rect(center=image.get_rect(topleft=(x, y)).center)
+
+        screen.blit(rotated_image, rotated_rect.topleft)
         screen.blit(text, (WIDTH - text.get_width() - 10, 10))
-        if y > HEIGHT or y < 0 or isPotatoColliding():
+        # --- Collision Check ---
+        if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image, rotated_rect):
             paused = True
             appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
             scores.submit_score(name, points)
