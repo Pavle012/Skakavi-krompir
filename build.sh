@@ -8,7 +8,6 @@ rm -rf dist
 mkdir -p dist
 
 # 3. Build it
-# Note: Added --jobs=4 for your i5 and --standalone for easier debugging if onefile fails
 python3 -m nuitka --onefile \
     --jobs=4 \
     --include-data-dir=assets=assets \
@@ -18,6 +17,3 @@ python3 -m nuitka --onefile \
     main.py
 
 echo "Build complete! Running the game..."
-
-# 4. Auto-run to check for those Nuitka bugs
-./dist/game
