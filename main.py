@@ -1,7 +1,8 @@
 import sys
 import dependencies
+from dependencies import is_compiled
 
-if not getattr(sys, "frozen", False):  # not running as PyInstaller exe
+if not is_compiled():
     dependencies.checkifdepend()
     dependencies.fetch_assets()
 dependencies.install_configs()

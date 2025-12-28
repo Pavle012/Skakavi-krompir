@@ -8,6 +8,19 @@ from PIL import Image, ImageTk # Added ImageTk
 global_icon_pil_image = None # Only global PIL Image
 
 
+def is_compiled():
+    """
+    Checks if the code is running as a compiled executable
+    (by PyInstaller, cx_Freeze, or Nuitka).
+    """
+    # Check for PyInstaller/cx_Freeze
+    is_frozen = getattr(sys, "frozen", False)
+    # Check for Nuitka
+    is_nuitka = "__compiled__" in globals()
+    
+    return is_frozen or is_nuitka
+
+
 def get_global_icon_photo_if_available():
     if global_icon_pil_image is not None:
         try:
