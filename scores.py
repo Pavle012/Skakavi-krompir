@@ -81,7 +81,6 @@ def start(root):
         font=(dependencies.get_font_path(), 12)
     ).pack(pady=10)
 
-    toplevel.grab_set()
     toplevel.wait_window()
 
 def start_public(root):
@@ -113,5 +112,4 @@ def start_public(root):
     else:
         ctk.CTkLabel(public_toplevel, text="Could not fetch leaderboard.", font=(dependencies.get_font_path(), 12)).pack()
 
-    public_toplevel.grab_set()
     public_toplevel.wait_window()

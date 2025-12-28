@@ -36,7 +36,6 @@ def getname(root):
     toplevel.bind('<Return>', lambda event: retuna())
     toplevel.bind('<Escape>', lambda event: toplevel.destroy())
     toplevel.focus_set()
-    toplevel.grab_set()
     toplevel.wait_window()
 
     def setSettings(key, newValue):

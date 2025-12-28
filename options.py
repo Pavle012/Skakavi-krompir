@@ -125,7 +125,6 @@ def options(root):
     maxFps.bind("<Return>", lambda event: setSettings("maxFps", maxFps.get()))
     maxFps.pack()
     
-    toplevel.grab_set()
     toplevel.wait_window()
 
 

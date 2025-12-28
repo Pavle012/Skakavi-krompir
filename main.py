@@ -157,6 +157,10 @@ if rememberName:
     name = getSettings("name")
 else:
     name = namecheck.getname(root)
+
+if gui.main_menu(root) == "exit":
+    sys.exit()
+    
 HEIGHT = 800
 WIDTH = 1200
 pygame.init()
@@ -236,6 +240,10 @@ while running:
             y += velocity * delta * 60
             clock.tick(maxfps)
 
+        # make the speed go faster over time
+        if points % 10 == 0 and points != 0:
+            scrollPixelsPerFrame += 0.01
+        
         # --- Rotation and Drawing ---
         # Calculate rotation angle based on vertical velocity.
         angle = max(min(velocity * -2.5, 30), -90)
