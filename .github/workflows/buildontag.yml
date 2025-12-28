@@ -57,4 +57,4 @@ jobs:
           name: ${{ steps.get_tag_message.outputs.message }}
           files: |
             dist/game-windows-latest/*
-            dist/game-ubuntu-latest/*
+            dist/game-ubuntu-22.04/*
