@@ -14,13 +14,11 @@ def lose_screen(root):
     def exit_game():
         global returncode
         returncode = "exit"
-        toplevel.quit()
         toplevel.destroy()
     
     def restart():
         global returncode
         returncode = "restart"
-        toplevel.quit()
         toplevel.destroy()
     
     # Use the globally loaded icon
@@ -37,7 +35,8 @@ def lose_screen(root):
     exitbutton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
     restartbutton.pack()
     exitbutton.pack()
-    toplevel.mainloop()
+    toplevel.grab_set()
+    toplevel.wait_window()
     if returncode == "exit":
         return "exit"
     elif returncode == "restart":
@@ -54,12 +53,10 @@ def pause_screen(root):
     def exit_game():
         global returncode
         returncode = "exit"
-        toplevel.quit()
         toplevel.destroy()
     def resume():
         global returncode
         returncode = "resume"
-        toplevel.quit()
         toplevel.destroy()
     def settings():
         options.start(root)
@@ -84,5 +81,6 @@ def pause_screen(root):
     resumebutton.pack()
     exitbutton.pack()
     settingsbutton.pack()
-    toplevel.mainloop()
+    toplevel.grab_set()
+    toplevel.wait_window()
     return returncode

@@ -13,11 +13,6 @@ def getname(root):
     def retuna():
         global retun
         retun = entry.get()
-        toplevel.quit()
-        toplevel.destroy()
-
-    def exit_window():
-        toplevel.quit()
         toplevel.destroy()
     
     # Use the globally loaded icon
@@ -36,12 +31,13 @@ def getname(root):
     rememberCheck.pack()
     done_button = ctk.CTkButton(toplevel, text="Save", command=retuna, font=(dependencies.get_font_path(), 12))
     done_button.pack()
-    exit_button = ctk.CTkButton(toplevel, text="Exit", command=exit_window, font=(dependencies.get_font_path(), 12))
+    exit_button = ctk.CTkButton(toplevel, text="Exit", command=toplevel.destroy, font=(dependencies.get_font_path(), 12))
     exit_button.pack()
     toplevel.bind('<Return>', lambda event: retuna())
-    toplevel.bind('<Escape>', lambda event: exit_window())
+    toplevel.bind('<Escape>', lambda event: toplevel.destroy())
     toplevel.focus_set()
-    toplevel.mainloop()
+    toplevel.grab_set()
+    toplevel.wait_window()
 
     def setSettings(key, newValue):
         settings = {}

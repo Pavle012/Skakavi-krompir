@@ -156,6 +156,11 @@ running = True
 just_resumed = False
 
 while running:
+    try:
+        root.update()
+        root.update_idletasks()
+    except:
+        pass
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
