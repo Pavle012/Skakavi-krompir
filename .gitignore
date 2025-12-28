@@ -12,3 +12,5 @@ main.spec
 dist/
 __pycache__/
 *.pyc
+.gemini/
+gha-creds-*.json
