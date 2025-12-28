@@ -52,5 +52,11 @@ def start(root):
     for s, n, d in sorted(zip(scores, names, dates), reverse=True):
         ctk.CTkLabel(toplevel, text=f"{s} — {n} ({d})", font=(dependencies.get_font_path(), 12)).pack()
 
-    toplevel.grab_set()
-    toplevel.wait_window()
+    def exit_window():
+        toplevel.quit()
+        toplevel.destroy()
+
+    exit_button = ctk.CTkButton(toplevel, text="Exit", command=exit_window, font=(dependencies.get_font_path(), 12))
+    exit_button.pack()
+
+    toplevel.mainloop()

@@ -124,9 +124,15 @@ def options(root):
         print("Error: maxFps not found in settings.txt, using default value of 120")
     maxFps.bind("<Return>", lambda event: setSettings("maxFps", maxFps.get()))
     maxFps.pack()
+
+    def exit_window():
+        toplevel.quit()
+        toplevel.destroy()
+
+    exit_button = ctk.CTkButton(toplevel, text="Exit", command=exit_window, font=(dependencies.get_font_path(), 12))
+    exit_button.pack()
     
-    toplevel.grab_set()
-    toplevel.wait_window()
+    toplevel.mainloop()
 
 
 def start(root):
