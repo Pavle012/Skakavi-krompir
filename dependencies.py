@@ -169,3 +169,60 @@ def fetch_assets():
             print(f"Downloaded: {filename}")
         except requests.exceptions.RequestException as e:
             print(f"Failed to download {filename} from {url}: {e}")
+
+def create_shortcut():
+    """
+    Creates a desktop shortcut for the application if it is running as a compiled executable.
+    """
+    if is_compiled():
+        if sys.platform == "win32":
+            # This part is for Windows
+            ensure_installed("winshell")
+            ensure_installed("pywin32")
+            import winshell
+            from win32com.client import Dispatch
+
+            app_name = "Skakavi Krompir"
+            app_path = sys.executable  # Use sys.executable for the compiled app path
+            icon_path = os.path.join(get_user_data_dir(), "potato.ico")
+            
+            # Create a shortcut in the start menu
+            start_menu = winshell.start_menu()
+            shortcut_path = os.path.join(start_menu, f"{app_name}.lnk")
+            
+            if not os.path.exists(shortcut_path):
+                shell = Dispatch('WScript.Shell')
+                shortcut = shell.CreateShortCut(shortcut_path)
+                shortcut.Targetpath = app_path
+                shortcut.WorkingDirectory = os.path.dirname(app_path)
+                shortcut.IconLocation = icon_path
+                shortcut.save()
+                print(f"Created shortcut at {shortcut_path}")
+
+        elif sys.platform == "linux":
+            # This part is for Linux
+            app_name = "Skakavi Krompir"
+            app_path = sys.executable  # Use sys.executable for the compiled app path
+            icon_path = get_potato_path()
+            
+            desktop_entry = f"""
+            [Desktop Entry]
+            Name={app_name}
+            Exec={app_path}
+            Icon={icon_path}
+            Type=Application
+            Categories=Game;
+            """
+            
+            # Create a .desktop file
+            applications_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "applications")
+            if not os.path.exists(applications_dir):
+                os.makedirs(applications_dir)
+            
+            desktop_file_path = os.path.join(applications_dir, f"{app_name}.desktop")
+            if not os.path.exists(desktop_file_path):
+                with open(desktop_file_path, "w") as f:
+                    f.write(desktop_entry)
+                print(f"Created desktop entry at {desktop_file_path}")
+    else:
+        print("Application not compiled. Skipping shortcut creation.")

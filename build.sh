@@ -15,5 +15,3 @@ python3 -m nuitka --onefile \
     --output-dir=dist \
     -o game \
     main.py
-
-echo "Build complete! Running the game..."
