@@ -32,7 +32,7 @@ jobs:
 
       - name: Build with Nuitka on Windows
         if: runner.os == 'Windows'
-        run: python -m nuitka --onefile --jobs=%NUMBER_OF_PROCESSORS% --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Windows" --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --assume-yes-for-downloads --enable-plugin=tk-inter main.py
+        run: python -m nuitka --onefile --jobs=1 --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Windows" --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --assume-yes-for-downloads --enable-plugin=tk-inter main.py
 
       - name: Build with Nuitka on Linux
         if: runner.os == 'Linux'
