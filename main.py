@@ -24,6 +24,7 @@ y = 0           # default y (restart() will overwrite)
 points = 0      # default points (restart() will overwrite)
 velocity = 0    # etc.
 scroll = 500
+speed_increase = 3
 
 ###############################################
 ############ Flappy Bird-like Game ############
@@ -118,7 +119,7 @@ def getSettings(key: str) -> Optional[str]:
     return settings.get(key)
 
 def reloadSettings():
-    global scrollPixelsPerFrame, jumpVelocity, font, maxfps
+    global scrollPixelsPerFrame, jumpVelocity, font, maxfps, speed_increase
     def _get_int_setting(key: str, default: int) -> int:
         val = getSettings(key)
         if val is None:
@@ -134,6 +135,7 @@ def reloadSettings():
     maxfps = _get_int_setting("maxFps", 60)
     font = pygame.font.Font(dependencies.get_font_path(), 36)
     rememberName = getSettings("rememberName") == "True"
+    speed_increase = _get_int_setting("speed_increase", 3)
     
 
 def appendScore(score):
@@ -242,7 +244,7 @@ while running:
 
         # make the speed go faster over time
         if points % 10 == 0 and points != 0:
-            scrollPixelsPerFrame += 0.01
+            scrollPixelsPerFrame += speed_increase * 0.01 * delta * 60
         
         # --- Rotation and Drawing ---
         # Calculate rotation angle based on vertical velocity.

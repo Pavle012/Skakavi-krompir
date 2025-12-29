@@ -76,6 +76,14 @@ def options(root):
             if pil_icon:
                 new_icon = ImageTk.PhotoImage(pil_icon)
                 toplevel.iconphoto(True, new_icon)
+    
+    def reset_settings():
+        # remove the appdata/.local settings folder
+        data_dir = dependencies.get_user_data_dir()
+        if os.path.exists(data_dir):
+            shutil.rmtree(data_dir)
+        dependencies.load_global_icon_pil()
+        toplevel.destroy()
 
     
     # Use the globally loaded icon
@@ -124,6 +132,20 @@ def options(root):
         print("Error: maxFps not found in settings.txt, using default value of 120")
     maxFps.bind("<Return>", lambda event: setSettings("maxFps", maxFps.get()))
     maxFps.pack()
+
+    clarifylabel = ctk.CTkLabel(toplevel, text="Speed increase", font=(dependencies.get_font_path(), 12))
+    clarifylabel.pack()
+    speedIncrease = ctk.CTkEntry(toplevel, font=(dependencies.get_font_path(), 16))
+    try:
+        speedIncrease.insert(0, int(getSettings("speed_increase")))
+    except:
+        speedIncrease.insert(0, 3)
+        print("Error: speed_increase not found in settings.txt, using default value of 3")
+    speedIncrease.bind("<Return>", lambda event: setSettings("speed_increase", speedIncrease.get()))
+    speedIncrease.pack()
+    
+    resetSettingsButton = ctk.CTkButton(toplevel, text="Reset Settings", command=lambda: reset_settings(), font=(dependencies.get_font_path(), 12))
+    resetSettingsButton.pack()
     
     toplevel.wait_window()
 

@@ -3,3 +3,4 @@ jumpVelocity=8
 maxFps=60
 rememberName=False
 name=Pavle
+speed_increase=0.03

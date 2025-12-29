@@ -137,6 +137,7 @@ def install_configs():
             f.write("maxFps=60\n")
             f.write("rememberName=False\n")
             f.write("name=User\n")
+            f.write("speed_increase=0.03\n")
         print(f"Default settings file '{default_settings_path}' created.")
 
 def fetch_assets():
