@@ -24,6 +24,8 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.cache/Nuitka
+            C:\Users\runneradmin\AppData\Local\pip\Cache
+            C:\Users\runneradmin\AppData\Local\Nuitka\Cache
           key: ${{ runner.os }}-nuitka-${{ hashFiles('requirements.txt') }}
 
       - run: pip install -r requirements.txt
