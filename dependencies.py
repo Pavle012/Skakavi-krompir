@@ -92,6 +92,8 @@ def get_font_path():
 
 
 def ensure_installed(package_name, import_name=None):
+    if is_compiled():
+        return
     import_name = import_name or package_name
     try:
         if importlib.util.find_spec(import_name) is None:
@@ -179,11 +181,13 @@ def create_shortcut():
     """
     if is_compiled():
         if sys.platform == "win32":
-            # This part is for Windows
-            ensure_installed("winshell")
-            ensure_installed("pywin32")
-            import winshell
-            from win32com.client import Dispatch
+            try:
+                import winshell
+                from win32com.client import Dispatch
+            except ModuleNotFoundError:
+                print("Could not create shortcut: winshell or pywin32 not found.")
+                print("Please install them with: pip install winshell pywin32")
+                return
 
             app_name = "Skakavi Krompir"
             app_path = sys.executable  # Use sys.executable for the compiled app path
