@@ -68,7 +68,7 @@ def restart():
         pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY))
     
     # Reload the image in case it was changed
-    image = pygame.image.load(dependencies.get_potato_path())
+    image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
     image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 
 
@@ -168,7 +168,7 @@ pygame.init()
 font = pygame.font.Font(dependencies.get_font_path(), 36)
 pygame.display.set_caption("skakavi krompir")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-image = pygame.image.load(dependencies.get_potato_path())
+image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
 image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 pygame.display.set_icon(image)
 
