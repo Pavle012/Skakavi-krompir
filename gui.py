@@ -60,7 +60,7 @@ def setSettings(key, newValue):
         for k, value in settings.items():
             f.write(f"{k}={value}\n")
 
-def main_menu(root):
+def main_menu(root, version: str):
     global returncode
     toplevel = ctk.CTkToplevel(root)
     toplevel.title("skakavi krompir")
@@ -107,6 +107,9 @@ def main_menu(root):
     exitButton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
     exitButton.pack(pady=5)
     
+    version_label = ctk.CTkLabel(toplevel, text=version, font=(dependencies.get_font_path(), 12))
+    version_label.place(relx=0.0, rely=1.0, anchor="sw", x=5, y=-5)
+
     toplevel.protocol("WM_DELETE_WINDOW", exit_game)
     toplevel.wait_window()
     return returncode

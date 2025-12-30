@@ -37,6 +37,9 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      - name: Create version file from tag
+        run: echo ${{ github.ref_name }} | sed 's/v//' > assets/version.txt
+
       - name: Build with Nuitka on Windows
         if: runner.os == 'Windows'
         run: python -m nuitka --onefile --jobs=1 --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Windows" --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --assume-yes-for-downloads --enable-plugin=tk-inter --lto=no main.py
