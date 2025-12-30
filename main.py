@@ -7,7 +7,6 @@ if not is_compiled():
     dependencies.fetch_assets()
 dependencies.install_configs()
 dependencies.load_global_icon_pil()
-dependencies.create_shortcut()
 
 import pygame
 import gui
