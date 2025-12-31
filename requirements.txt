@@ -3,3 +3,4 @@ nuitka
 requests
 Pillow
 customtkinter
+pygame_gui

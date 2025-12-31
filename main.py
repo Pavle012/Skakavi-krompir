@@ -1,3 +1,4 @@
+import pygame_gui
 import sys
 import dependencies
 from dependencies import is_compiled
@@ -107,20 +108,10 @@ def spawnPipe():
         realX = px + scroll
         pipe(realX, py).draw(screen)
 
-def getSettings(key: str) -> Optional[str]:
-    settings = {}
-    settings_path = os.path.join(dependencies.get_user_data_dir(), "settings.txt")
-    with open(settings_path) as f:
-        for line in f:
-            if "=" in line:
-                k, value = line.strip().split("=", 1)
-                settings[k] = value
-    return settings.get(key)
-
 def reloadSettings():
     global scrollPixelsPerFrame, jumpVelocity, font, maxfps, speed_increase
     def _get_int_setting(key: str, default: int) -> int:
-        val = getSettings(key)
+        val = dependencies.getSettings(key)
         if val is None:
             return default
         try:
@@ -133,7 +124,7 @@ def reloadSettings():
     jumpVelocity = _get_int_setting("jumpVelocity", 12)
     maxfps = _get_int_setting("maxFps", 60)
     font = pygame.font.Font(dependencies.get_font_path(), 36)
-    rememberName = getSettings("rememberName") == "True"
+    rememberName = dependencies.getSettings("rememberName") == "True"
     speed_increase = _get_int_setting("speed_increase", 3)
     
 
@@ -146,21 +137,21 @@ def appendScore(score):
 ##################### Init #####################
 ################################################
 
-import customtkinter as ctk
+# --- Game State Setup ---
+# We use a simple string-based state machine
+game_state = "STARTUP"
+previous_game_state = "STARTUP"
+name = ""
 
-# Create a hidden root window
-root = ctk.CTk()
-root.withdraw()
-
-rememberName = getSettings("rememberName") == "True"
-
+rememberName = dependencies.getSettings("rememberName") == "True"
 if rememberName:
-    name = getSettings("name")
+    name = dependencies.getSettings("name")
+    if name:
+        game_state = "MAIN_MENU"
+    else:
+        game_state = "NAME_CHECK"
 else:
-    name = namecheck.getname(root)
-
-if gui.main_menu(root) == "exit":
-    sys.exit()
+    game_state = "NAME_CHECK"
     
 HEIGHT = 800
 WIDTH = 1200
@@ -172,6 +163,10 @@ image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
 image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 pygame.display.set_icon(image)
 
+# Pygame GUI Manager
+manager = pygame_gui.UIManager((WIDTH, HEIGHT))
+
+
 ################################################
 ################### Main Loop ##################
 ################################################
@@ -180,49 +175,140 @@ restart()
 running = True
 just_resumed = False
 
+# Keep track of the last angle for smooth pause/unpause visuals
+angle = 0
+
 while running:
-    try:
-        root.update()
-        root.update_idletasks()
-    except:
-        pass
+    time_delta = clock.get_time() / 1000.0
+
+    # --- Event Handling ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN and not paused:
-            if event.key == pygame.K_SPACE:
-                velocity = -jumpVelocity
-            if event.key == pygame.K_ESCAPE:
-                paused = True
-                afterpause = gui.pause_screen(root)
-                if afterpause == "exit":
+        
+        manager.process_events(event)
+
+        if event.type == pygame_gui.UI_BUTTON_PRESSED:
+            # --- Name Check Events ---
+            if game_state == "NAME_CHECK" and '@name_save_button' in event.ui_object_id:
+                name = gui.name_entry_box.get_text()
+                remember = gui.remember_name_checkbox.is_selected
+                
+                dependencies.setSettings("name", name)
+                dependencies.setSettings("rememberName", remember)
+
+                gui.close_name_input_window()
+                game_state = "MAIN_MENU" # Transition to main menu
+
+            # --- Main Menu Events ---
+            if game_state == "MAIN_MENU":
+                if '@main_menu_start_button' in event.ui_object_id:
+                    gui.close_main_menu_window()
+                    game_state = "PLAYING"
+                    restart() # Restart game before playing
+                elif '@main_menu_exit_button' in event.ui_object_id:
                     running = False
-                elif afterpause == "resume":
-                    # If potato is in a losing state, show lose screen immediately
-                    angle = max(min(velocity * -2.5, 30), -90)
-                    rotated_image_on_resume = pygame.transform.rotate(image, angle)
-                    rotated_rect_on_resume = rotated_image_on_resume.get_rect(center=image.get_rect(topleft=(x, y)).center)
-                    if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image_on_resume, rotated_rect_on_resume):
-                        appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
-                        scores.submit_score(name, points)
-                        reloadSettings()
-                        afterpause2 = gui.lose_screen(root)
-                        if afterpause2 == "exit":
-                            running = False
-                        elif afterpause2 == "restart":
-                            restart()
-                            paused = False
-                    else:
-                        velocity = 0
-                        clock.tick(maxfps)  # Reset clock to avoid large delta
-                        just_resumed = True
-                        paused = False
-        if event.type == pygame.MOUSEBUTTONDOWN and not paused:
-            velocity = -jumpVelocity
+                elif '@main_menu_settings_button' in event.ui_object_id:
+                    previous_game_state = game_state
+                    game_state = "OPTIONS"
+                    gui.create_options_window(manager)
+                elif '@main_menu_scores_button' in event.ui_object_id:
+                    scores.create_scores_window(manager)
+                elif '@main_menu_public_leaderboard_button' in event.ui_object_id:
+                    scores.create_public_leaderboard_window(manager)
 
-    if not paused:
-        screen.fill((66, 183, 237))
 
+            # --- Pause Menu Events ---
+            elif game_state == "PAUSED":
+                if '@pause_resume_button' in event.ui_object_id:
+                    game_state = "PLAYING"
+                    gui.close_pause_screen()
+                    velocity = 0
+                    clock.tick(maxfps)
+                    just_resumed = True
+                elif '@pause_quit_button' in event.ui_object_id:
+                    running = False
+                elif '@pause_scores_button' in event.ui_object_id:
+                    scores.create_scores_window(manager)
+                elif '@pause_public_leaderboard_button' in event.ui_object_id:
+                    scores.create_public_leaderboard_window(manager)
+                elif '@pause_settings_button' in event.ui_object_id:
+                    previous_game_state = game_state
+                    game_state = "OPTIONS"
+                    gui.create_options_window(manager)
+                elif '@pause_update_button' in event.ui_object_id:
+                    print("Update button pressed")
+
+            # --- Game Over Events ---
+            elif game_state == "GAME_OVER":
+                if '@lose_restart_button' in event.ui_object_id:
+                    gui.close_lose_screen()
+                    restart()
+                    game_state = "PLAYING"
+                elif '@lose_quit_button' in event.ui_object_id:
+                    running = False
+                elif '@lose_public_leaderboard_button' in event.ui_object_id:
+                    scores.create_public_leaderboard_window(manager)
+            
+            # --- Options Window Events ---
+            elif game_state == "OPTIONS":
+                if '@options_close_button' in event.ui_object_id:
+                    gui.close_options_window()
+                    game_state = previous_game_state
+                elif '@options_test_button' in event.ui_object_id:
+                    print("Test button pressed!")
+                elif '@options_upload_font' in event.ui_object_id:
+                    print("Upload Font button pressed") # Placeholder
+                elif '@options_upload_image' in event.ui_object_id:
+                    print("Upload Image button pressed") # Placeholder
+                elif '@options_reset_settings' in event.ui_object_id:
+                    print("Reset Settings button pressed") # Placeholder
+
+        if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED and game_state == "OPTIONS":
+            slider_id = event.ui_object_id
+            for key, slider in gui.sliders.items():
+                if slider_id.endswith(key): # Check if the key is in the full object ID
+                    value = int(event.value)
+                    gui.value_labels[key].set_text(str(value))
+                    dependencies.setSettings(key, value)
+                    # Also update game values in real-time if needed
+                    reloadSettings()
+
+        # --- Keyboard/Mouse Events for Gameplay ---
+        if game_state == "PLAYING":
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    velocity = -jumpVelocity
+                if event.key == pygame.K_ESCAPE:
+                    game_state = "PAUSED"
+                    gui.create_pause_screen(manager)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if not manager.get_focus_set():
+                    velocity = -jumpVelocity
+
+    # --- Update and Draw ---
+    manager.update(time_delta)
+
+    screen.fill((66, 183, 237))
+
+    if game_state == "NAME_CHECK":
+        gui.create_name_input_window(manager)
+        
+    elif game_state == "MAIN_MENU":
+        gui.create_main_menu_window(manager)
+    
+    elif game_state == "OPTIONS":
+        # When in options, we might want to see the underlying screen
+        if previous_game_state == "PAUSED":
+            # Redraw the last game state
+            rotated_image = pygame.transform.rotate(image, angle)
+            rotated_rect = rotated_image.get_rect(center=image.get_rect(topleft=(x, y)).center)
+            spawnPipe()
+            screen.blit(rotated_image, rotated_rect.topleft)
+        # No need to explicitly call create_options_window here, 
+        # it is created on button press and will be drawn by the manager
+
+    elif game_state == "PLAYING":
         spawnPipe()
         if (-scroll // PIPE_SPACING) < 0:
             points = 0
@@ -232,41 +318,42 @@ while running:
         text = font.render(text_str, True, (255, 255, 255))
 
         if just_resumed:
-            clock.tick(maxfps)
             just_resumed = False
         else:
-            delta = clock.get_time() / 1000
-            velocity += 0.5 * delta * 60
-            scroll -= scrollPixelsPerFrame * delta * 60
-            y += velocity * delta * 60
-            clock.tick(maxfps)
+            velocity += 0.5 * time_delta * 60
+            scroll -= scrollPixelsPerFrame * time_delta * 60
+            y += velocity * time_delta * 60
 
-        # make the speed go faster over time
         if points % 10 == 0 and points != 0:
-            scrollPixelsPerFrame += speed_increase * 0.01 * delta * 60
+            scrollPixelsPerFrame += speed_increase * 0.01 * time_delta * 60
         
-        # --- Rotation and Drawing ---
-        # Calculate rotation angle based on vertical velocity.
         angle = max(min(velocity * -2.5, 30), -90)
-        # Rotate the master image.
         rotated_image = pygame.transform.rotate(image, angle)
-        # Create a new rect for the rotated image, ensuring its center matches the player's logical position.
         rotated_rect = rotated_image.get_rect(center=image.get_rect(topleft=(x, y)).center)
-
         screen.blit(rotated_image, rotated_rect.topleft)
-        screen.blit(text, (WIDTH - text.get_width() - 10, 10))
-        # --- Collision Check ---
+        
         if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image, rotated_rect):
-            paused = True
+            game_state = "GAME_OVER"
             appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
             scores.submit_score(name, points)
             reloadSettings()
-            afterpause = gui.lose_screen(root)
-            if afterpause == "exit":
-                running = False
-            elif afterpause == "restart":
-                restart()
-                paused = False
-        pygame.display.update()
+            gui.create_lose_screen(manager)
+
+    elif game_state == "PAUSED" or game_state == "GAME_OVER":
+        # Redraw the last game state to keep it on screen under the menu
+        rotated_image = pygame.transform.rotate(image, angle)
+        rotated_rect = rotated_image.get_rect(center=image.get_rect(topleft=(x, y)).center)
+        spawnPipe()
+        screen.blit(rotated_image, rotated_rect.topleft)
+
+    # UI and score text should always be on top (if not in a menu state)
+    if game_state == "PLAYING":
+        screen.blit(text, (WIDTH - text.get_width() - 10, 10))
+    
+    manager.draw_ui(screen)
+    
+    pygame.display.update()
+    clock.tick(maxfps)
 
 pygame.quit()
+sys.exit()

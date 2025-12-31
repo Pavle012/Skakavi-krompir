@@ -91,6 +91,35 @@ def get_font_path():
     return resource_path("assets/font.ttf")
 
 
+def getSettings(key: str):
+    """ Get a setting from the settings file. """
+    settings = {}
+    settings_path = os.path.join(get_user_data_dir(), "settings.txt")
+    if not os.path.exists(settings_path):
+        return None
+    with open(settings_path) as f:
+        for line in f:
+            if "=" in line:
+                k, value = line.strip().split("=", 1)
+                settings[k] = value
+    return settings.get(key)
+
+def setSettings(key: str, newValue: str):
+    """Helper function to save a setting to the settings.txt file."""
+    settings = {}
+    settings_path = os.path.join(get_user_data_dir(), "settings.txt")
+    if os.path.exists(settings_path):
+        with open(settings_path) as f:
+            for line in f:
+                if "=" in line:
+                    k, value = line.strip().split("=", 1)
+                    settings[k] = value
+    settings[key] = str(newValue) # Ensure value is a string for writing
+    with open(settings_path, "w") as f:
+        for k, value in settings.items():
+            f.write(f"{k}={value}\n")
+
+
 def ensure_installed(package_name, import_name=None):
     if is_compiled():
         return
@@ -115,6 +144,7 @@ def checkifdepend():
     ensure_installed("pygame")
     ensure_installed("pillow", "PIL")
     ensure_installed("requests")
+    pass
 
 
 def copy_default_assets():
