@@ -17,25 +17,6 @@ import datetime
 import os
 from typing import Optional
 
-def get_game_version():
-    """
-    Fetches the game version.
-    If the game is compiled, it reads from 'version.txt'.
-    Otherwise, it shows a development status message.
-    """
-    if getattr(sys, 'frozen', False):
-        try:
-            # Running as a compiled executable
-            base_path = os.path.dirname(sys.executable)
-            version_file_path = os.path.join(base_path, 'assets', 'version.txt')
-            with open(version_file_path, 'r') as f:
-                return f"Version: {f.read().strip()}"
-        except FileNotFoundError:
-            return "Version: unknown"
-    else:
-        # Running as a regular .py script
-        return "Alpha version/untracked"
-
 paused = False  # initialize before use because of type checking
 x = 100         # default x (restart() will overwrite)
 y = 0           # default y (restart() will overwrite)
@@ -178,7 +159,7 @@ if rememberName:
 else:
     name = namecheck.getname(root)
 
-if gui.main_menu(root, get_game_version()) == "exit":
+if gui.main_menu(root) == "exit":
     sys.exit()
     
 HEIGHT = 800
