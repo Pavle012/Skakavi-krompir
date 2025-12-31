@@ -3,7 +3,16 @@ import pygame_gui
 import os
 import ast
 import dependencies
-import requests
+import dependencies
+import sys
+
+if sys.platform == "emscripten":
+    requests = None
+else:
+    try:
+        import requests
+    except ImportError:
+        requests = None
 
 # --- Public Leaderboard Config ---
 SERVER_URL = "https://dragon-honest-directly.ngrok-free.app"
@@ -15,6 +24,9 @@ public_leaderboard_window = None
 
 def submit_score(player, score):
     """Submits a score to the public leaderboard."""
+    if requests is None:
+        print("Network disabled or requests module missing.")
+        return
     if not player:
         print("Cannot submit score for empty player name.")
         return
@@ -28,6 +40,9 @@ def submit_score(player, score):
 
 def get_leaderboard(limit=15):
     """Fetches the public leaderboard."""
+    if requests is None:
+        print("Network disabled or requests module missing.")
+        return None
     try:
         r = requests.get(f"{SERVER_URL}/leaderboard", params={"limit": limit}, timeout=5)
         r.raise_for_status()

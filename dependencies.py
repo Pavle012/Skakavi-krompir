@@ -3,7 +3,7 @@ import subprocess
 import sys
 import os
 import shutil
-from PIL import Image, ImageTk # Added ImageTk
+from PIL import Image
 
 
 global_icon_pil_image = None # Only global PIL Image
@@ -18,8 +18,10 @@ def is_compiled():
     is_frozen = getattr(sys, "frozen", False)
     # Check for Nuitka
     is_nuitka = "__compiled__" in globals()
+    # Check for Emscripten (Pygbag)
+    is_emscripten = sys.platform == "emscripten"
     
-    return is_frozen or is_nuitka
+    return is_frozen or is_nuitka or is_emscripten
 
 
 def get_global_icon_pil():
@@ -35,10 +37,11 @@ def load_global_icon_pil():
     if os.path.exists(icon_path):
         global_icon_pil_image = Image.open(icon_path)
         # Also generate .ico from .png here for consistency
-        ico_path = os.path.join(get_user_data_dir(), "potato.ico")
-        if not os.path.exists(ico_path):
-            global_icon_pil_image.save(ico_path, format='ICO', sizes=[(256, 256)])
-            print(f"Generated {ico_path} from {icon_path}")
+        # ico generation disabled for web safety
+        # ico_path = os.path.join(get_user_data_dir(), "potato.ico")
+        # if not os.path.exists(ico_path):
+        #    global_icon_pil_image.save(ico_path, format='ICO', sizes=[(256, 256)])
+        #    print(f"Generated {ico_path} from {icon_path}")
     else:
         # Fallback to default if no custom/standard icon is found
         default_icon_path = resource_path("assets/potato.png")
@@ -53,6 +56,9 @@ def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
+    elif sys.platform == "emscripten":
+         # In Pygbag/WASM, the assets are at the root or relative to CWD
+        base_path = os.path.abspath(".")
     elif is_compiled():
         # For Nuitka and others, the assets are relative to the executable
         base_path = os.path.dirname(sys.executable)
@@ -65,6 +71,8 @@ def resource_path(relative_path):
 def get_user_data_dir():
     """ Get path to user data directory, create it if it doesn't exist """
     app_name = "SkakaviKrompir"
+    if sys.platform == "emscripten":
+        return "."
     if sys.platform == "win32":
         data_dir = os.path.join(os.environ["APPDATA"], app_name)
     else:
@@ -175,6 +183,9 @@ def install_configs():
     create_shortcut()
 
 def fetch_assets():
+    if is_compiled():
+        return
+
     import requests
     
     folder_path = "./assets"
