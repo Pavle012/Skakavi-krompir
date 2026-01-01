@@ -84,20 +84,31 @@ def isPotatoColliding(potato_surface, potato_rect):
     # Iterate over each pipe.
     for px, py, is_top in pipesPos:
         realX = px + scroll
-        if is_top:
-            pipe_rect = pygame.Rect(realX, 0, 50, py + 300)
-            pipe_mask = pygame.mask.Mask((50, py + 300), fill=True)
-        else:
-            pipe_rect = pygame.Rect(realX, py, 50, HEIGHT - py)
-            pipe_mask = pygame.mask.Mask((50, HEIGHT - py), fill=True)
-
-        # First, a simple and fast bounding box check to see if they are even close.
-        if not potato_rect.colliderect(pipe_rect):
+        
+        # Optimization: Only check pipes that are roughly on screen
+        if realX < -100 or realX > WIDTH + 100:
             continue
 
-        # If the bounding boxes overlap, perform a more accurate (and slower) pixel-perfect collision check.
-        # Calculate the offset between the potato and the pipe. This is the relative position
-        # of the pipe's top-left corner from the potato's top-left corner.
+        if is_top:
+            p_height = py + 300
+            if p_height <= 0:
+                continue
+            pipe_rect = pygame.Rect(realX, 0, 50, p_height)
+            # First, a simple and fast bounding box check.
+            if not potato_rect.colliderect(pipe_rect):
+                continue
+            pipe_mask = pygame.mask.Mask((50, p_height), fill=True)
+        else:
+            p_height = HEIGHT - py
+            if p_height <= 0:
+                continue
+            pipe_rect = pygame.Rect(realX, py, 50, p_height)
+            # First, a simple and fast bounding box check.
+            if not potato_rect.colliderect(pipe_rect):
+                continue
+            pipe_mask = pygame.mask.Mask((50, p_height), fill=True)
+
+        # Calculate the offset between the potato and the pipe.
         offset = (pipe_rect.x - potato_rect.x, pipe_rect.y - potato_rect.y)
 
         # Check for overlap between the masks.
@@ -135,12 +146,22 @@ def reloadSettings():
             print(f"Invalid integer for {key}: {val}. Using default {default}.", flush=True)
             return default
 
+    def _get_float_setting(key: str, default: float) -> float:
+        val = getSettings(key)
+        if val is None:
+            return default
+        try:
+            return float(val)
+        except ValueError:
+            print(f"Invalid float for {key}: {val}. Using default {default}.", flush=True)
+            return default
+
     scrollPixelsPerFrame = _get_int_setting("scrollPixelsPerFrame", 2)
     jumpVelocity = _get_int_setting("jumpVelocity", 12)
     maxfps = _get_int_setting("maxFps", 60)
     font = pygame.font.Font(dependencies.get_font_path(), 36)
     rememberName = getSettings("rememberName") == "True"
-    speed_increase = _get_int_setting("speed_increase", 3)
+    speed_increase = _get_float_setting("speed_increase", 3.0)
     
 
 def appendScore(score):
