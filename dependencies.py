@@ -115,7 +115,6 @@ def checkifdepend():
     ensure_installed("pygame")
     ensure_installed("pillow", "PIL")
     ensure_installed("requests")
-    ensure_installed("breeze-style-sheets", "breeze_style_sheets")
 
 
 def copy_default_assets():

@@ -3,4 +3,3 @@ nuitka
 requests
 Pillow
 PyQt6
-breeze-style-sheets

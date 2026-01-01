@@ -9,20 +9,92 @@ import os
 import sys
 
 def apply_breeze_dark(app):
-    try:
-        from breeze_style_sheets import qt6
-        # Start by seeing if we can just use the system's native breeze
-        from PyQt6.QtWidgets import QStyleFactory
-        if "Breeze" in QStyleFactory.keys():
-             app.setStyle("Breeze")
-        
-        # Then apply the high-quality stylesheet from the library
-        # This includes all the "real" assets from KDE
-        stylesheet = qt6.dark()
-        app.setStyleSheet(stylesheet)
-    except Exception as e:
-        print(f"Breeze theme loading failed: {e}. Falling back to default.")
-        app.setStyle("Fusion")
+    # Try to use the system's "real" Breeze style if it's available in the Qt environment
+    from PyQt6.QtWidgets import QStyleFactory
+    if "Breeze" in QStyleFactory.keys():
+        app.setStyle("Breeze")
+        return
+    
+    # Otherwise, apply a high-fidelity "Real" Breeze Dark replica via QSS
+    # This uses the exact KDE Breeze Dark color palette and styling rules
+    app.setStyle("Fusion") # Base style for clean inheritance
+    
+    breeze_dark_qss = """
+    /* Main Window and Dialogs */
+    QWidget {
+        background-color: #232629;
+        color: #eff0f1;
+        selection-background-color: #3daee9;
+        selection-color: #eff0f1;
+        font-family: 'Noto Sans', 'Arial';
+    }
+    
+    /* Buttons */
+    QPushButton {
+        background-color: #31363b;
+        color: #eff0f1;
+        border: 1px solid #76797c;
+        border-radius: 2px;
+        padding: 5px 15px;
+        min-height: 25px;
+    }
+    QPushButton:hover {
+        border: 1px solid #3daee9;
+    }
+    QPushButton:pressed {
+        background-color: #2a2e32;
+        border: 1px solid #3daee9;
+    }
+    QPushButton:default {
+        border-color: #3daee9;
+    }
+    
+    /* Inputs */
+    QLineEdit {
+        background-color: #1b1e20;
+        border: 1px solid #76797c;
+        border-radius: 2px;
+        padding: 3px;
+        color: #eff0f1;
+    }
+    QLineEdit:focus {
+        border: 1px solid #3daee9;
+    }
+    
+    /* Scroll Areas */
+    QScrollArea {
+        border: 1px solid #76797c;
+        background-color: #232629;
+    }
+    
+    /* Checkboxes */
+    QCheckBox {
+        spacing: 10px;
+    }
+    QCheckBox::indicator {
+        width: 18px;
+        height: 18px;
+        border: 1px solid #76797c;
+        border-radius: 2px;
+    }
+    QCheckBox::indicator:unchecked {
+        background-color: #31363b;
+    }
+    QCheckBox::indicator:checked {
+        background-color: #31363b;
+        image: url(no-resource); /* Fallback */
+        border: 1px solid #3daee9;
+    }
+    QCheckBox::indicator:hover {
+        border: 1px solid #3daee9;
+    }
+
+    /* Labels */
+    QLabel {
+        background: transparent;
+    }
+    """
+    app.setStyleSheet(breeze_dark_qss)
 
 def get_common_font(size=16):
     font_path = dependencies.get_font_path()
