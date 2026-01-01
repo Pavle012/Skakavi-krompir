@@ -142,24 +142,21 @@ def appendScore(score):
     with open(scores_path, "a") as f:
         f.write(f"{score}\n")
 
-################################################
-##################### Init #####################
-################################################
+from PyQt6.QtWidgets import QApplication
+import sys
 
-import customtkinter as ctk
+# Initialize QApplication for PyQt6 dialogs
+app = QApplication(sys.argv)
 
-# Create a hidden root window
-root = ctk.CTk()
-root.withdraw()
-
+# Init
 rememberName = getSettings("rememberName") == "True"
 
 if rememberName:
     name = getSettings("name")
 else:
-    name = namecheck.getname(root)
+    name = namecheck.getname(None)
 
-if gui.main_menu(root) == "exit":
+if gui.main_menu(None) == "exit":
     sys.exit()
     
 HEIGHT = 800
@@ -181,11 +178,7 @@ running = True
 just_resumed = False
 
 while running:
-    try:
-        root.update()
-        root.update_idletasks()
-    except:
-        pass
+    # root.update calls removed as we no longer use CustomTkinter/Tkinter root
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -194,7 +187,7 @@ while running:
                 velocity = -jumpVelocity
             if event.key == pygame.K_ESCAPE:
                 paused = True
-                afterpause = gui.pause_screen(root)
+                afterpause = gui.pause_screen(None)
                 if afterpause == "exit":
                     running = False
                 elif afterpause == "resume":
@@ -206,7 +199,7 @@ while running:
                         appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
                         scores.submit_score(name, points)
                         reloadSettings()
-                        afterpause2 = gui.lose_screen(root)
+                        afterpause2 = gui.lose_screen(None)
                         if afterpause2 == "exit":
                             running = False
                         elif afterpause2 == "restart":
@@ -261,7 +254,7 @@ while running:
             appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
             scores.submit_score(name, points)
             reloadSettings()
-            afterpause = gui.lose_screen(root)
+            afterpause = gui.lose_screen(None)
             if afterpause == "exit":
                 running = False
             elif afterpause == "restart":

@@ -1,50 +1,130 @@
-import customtkinter as ctk
+from PyQt6.QtWidgets import (QApplication, QDialog, QVBoxLayout, QPushButton, 
+                             QLabel, QWidget, QFileDialog, QLineEdit, QCheckBox)
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QIcon, QFont
 import scores as scs
 import options
 import dependencies
-from PIL import Image, ImageTk
 import os
-returncode = "error"
+import sys
 
-def lose_screen(root):
-    global returncode
-    toplevel = ctk.CTkToplevel(root)
-    toplevel.title("skakavi krompir")
-    toplevel.geometry("300x200")
+# --- Easy PyQt Helpers ---
+
+def get_common_font(size=16):
+    font_path = dependencies.get_font_path()
+    # PyQt can load fonts by file path if needed, but here we assume family matching or default
+    return QFont("Arial", size) # Fallback to Arial for simplicity in this easy wrapper
+
+class EasyDialog(QDialog):
+    def __init__(self, title, size=(340, 300), parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setFixedSize(size[0], size[1])
+        self.layout = QVBoxLayout()
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setLayout(self.layout)
+        
+        icon_path = dependencies.get_potato_path()
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+            
+    def add_label(self, text, font_size=24):
+        label = QLabel(text)
+        label.setFont(get_common_font(font_size))
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(label)
+        return label
+        
+    def add_button(self, text, callback, font_size=16):
+        btn = QPushButton(text)
+        btn.setFont(get_common_font(font_size))
+        btn.setFixedSize(200, 40)
+        btn.clicked.connect(callback)
+        self.layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        return btn
+
+# --- Core Screens ---
+
+def lose_screen(root_dummy):
+    dialog = EasyDialog("skakavi krompir", size=(300, 250))
+    dialog.add_label("You lost!", 24)
+    
+    returncode = "error"
+
+    def restart():
+        nonlocal returncode
+        returncode = "restart"
+        dialog.accept()
 
     def exit_game():
-        global returncode
+        nonlocal returncode
         returncode = "exit"
-        toplevel.destroy()
-    
-    def restart():
-        global returncode
-        returncode = "restart"
-        toplevel.destroy()
-    
-    # Use the globally loaded icon
-    pil_icon = dependencies.get_global_icon_pil()
-    if pil_icon:
-        icon_photo = ImageTk.PhotoImage(pil_icon)
-        toplevel._icon_photo_ref = icon_photo # Keep a strong reference
-        toplevel.iconphoto(True, icon_photo)
-    loselabel = ctk.CTkLabel(toplevel, text="You lost!", font=(dependencies.get_font_path(), 24))
-    loselabel.pack()
-    
-    toplevel.bind("<Return>", lambda e: restart())
-    restartbutton = ctk.CTkButton(toplevel, text="Restart", command=restart, font=(dependencies.get_font_path(), 16))
-    exitbutton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
-    public_button = ctk.CTkButton(toplevel, text="Public Leaderboard", command=lambda: scs.start_public(root), font=(dependencies.get_font_path(), 16))
-    restartbutton.pack()
-    exitbutton.pack()
-    public_button.pack()
+        dialog.reject()
 
-    toplevel.wait_window()
-    if returncode == "exit":
-        return "exit"
-    elif returncode == "restart":
-        return "restart"
+    dialog.add_button("Restart", restart)
+    dialog.add_button("Exit", exit_game)
+    dialog.add_button("Public Leaderboard", lambda: scs.start_public(None))
+    
+    dialog.exec()
+    return returncode
 
+def main_menu(root_dummy):
+    dialog = EasyDialog("skakavi krompir", size=(340, 350))
+    dialog.add_label("Skakavi Krompir", 24)
+    
+    returncode = "exit"
+
+    def start_game():
+        nonlocal returncode
+        returncode = "start"
+        dialog.accept()
+
+    def quit_game():
+        nonlocal returncode
+        returncode = "exit"
+        dialog.reject()
+
+    dialog.add_button("Start Game", start_game)
+    dialog.add_button("Settings", lambda: options.start(None))
+    dialog.add_button("Scores", lambda: scs.start(None))
+    dialog.add_button("Public Leaderboard", lambda: scs.start_public(None))
+    dialog.add_button("Exit", quit_game)
+    
+    dialog.exec()
+    return returncode
+
+def pause_screen(root_dummy):
+    dialog = EasyDialog("skakavi krompir", size=(340, 400))
+    dialog.add_label("Paused", 24)
+    
+    returncode = "resume"
+
+    def resume():
+        nonlocal returncode
+        returncode = "resume"
+        dialog.accept()
+
+    def exit_game():
+        nonlocal returncode
+        returncode = "exit"
+        dialog.reject()
+
+    dialog.add_button("Scores", lambda: scs.start(None))
+    dialog.add_button("Public Leaderboard", lambda: scs.start_public(None))
+    dialog.add_button("Resume", resume)
+    dialog.add_button("Exit", exit_game)
+    dialog.add_button("Settings", lambda: options.start(None))
+    
+    def update_game():
+        import updater
+        game_executable_path = sys.argv[0]
+        updater.start_update(game_executable_path)
+        exit_game()
+        
+    dialog.add_button("Update", update_game)
+    
+    dialog.exec()
+    return returncode
 
 def setSettings(key, newValue):
     settings = {}
@@ -59,108 +139,3 @@ def setSettings(key, newValue):
     with open(settings_path, "w") as f:
         for k, value in settings.items():
             f.write(f"{k}={value}\n")
-
-def main_menu(root):
-    global returncode
-    toplevel = ctk.CTkToplevel(root)
-    toplevel.title("skakavi krompir")
-    toplevel.geometry("340x300")
-
-    def exit_game():
-        global returncode
-        returncode = "exit"
-        toplevel.destroy()
-
-    def start_game():
-        global returncode
-        returncode = "start"
-        toplevel.destroy()
-
-    def settings():
-        options.start(root)
-
-    def scores():
-        scs.start(root)
-
-    # Use the globally loaded icon
-    pil_icon = dependencies.get_global_icon_pil()
-    if pil_icon:
-        icon_photo = ImageTk.PhotoImage(pil_icon)
-        toplevel._icon_photo_ref = icon_photo # Keep a strong reference
-        toplevel.iconphoto(True, icon_photo)
-    
-    mainlabel = ctk.CTkLabel(toplevel, text="Skakavi Krompir", font=(dependencies.get_font_path(), 24))
-    mainlabel.pack(pady=10)
-
-    startButton = ctk.CTkButton(toplevel, text="Start Game", command=start_game, font=(dependencies.get_font_path(), 16))
-    startButton.pack(pady=5)
-
-    settingsButton = ctk.CTkButton(toplevel, text="Settings", command=settings, font=(dependencies.get_font_path(), 16))
-    settingsButton.pack(pady=5)
-
-    scoresButton = ctk.CTkButton(toplevel, text="Scores", command=scores, font=(dependencies.get_font_path(), 16))
-    scoresButton.pack(pady=5)
-
-    publicScoresButton = ctk.CTkButton(toplevel, text="Public Leaderboard", command=lambda: scs.start_public(root), font=(dependencies.get_font_path(), 16))
-    publicScoresButton.pack(pady=5)
-    
-    exitButton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
-    exitButton.pack(pady=5)
-    
-    toplevel.protocol("WM_DELETE_WINDOW", exit_game)
-    toplevel.wait_window()
-    return returncode
-
-
-
-
-def pause_screen(root):
-    global returncode
-    toplevel = ctk.CTkToplevel(root)
-    toplevel.title("skakavi krompir")
-    toplevel.geometry("340x300")
-    
-    def exit_game():
-        global returncode
-        returncode = "exit"
-        toplevel.destroy()
-    def resume():
-        global returncode
-        returncode = "resume"
-        toplevel.destroy()
-    def settings():
-        options.start(root)
-    def scores():
-        scs.start(root)
-    def update():
-        import updater
-        import sys
-        game_executable_path = sys.argv[0]
-        updater.start_update(game_executable_path)
-        exit_game()
-    
-    # Use the globally loaded icon
-    pil_icon = dependencies.get_global_icon_pil()
-    if pil_icon:
-        icon_photo = ImageTk.PhotoImage(pil_icon)
-        toplevel._icon_photo_ref = icon_photo # Keep a strong reference
-        toplevel.iconphoto(True, icon_photo)
-    pauselabel = ctk.CTkLabel(toplevel, text="Paused", font=(dependencies.get_font_path(), 24))
-    pauselabel.pack()
-    
-    toplevel.bind("<Escape>", lambda e: resume())
-    scorebutton = ctk.CTkButton(toplevel, text="Scores", command=scores, font=(dependencies.get_font_path(), 16))
-    public_leaderboard_button = ctk.CTkButton(toplevel, text="Public Leaderboard", command=lambda: scs.start_public(root), font=(dependencies.get_font_path(), 16))
-    resumebutton = ctk.CTkButton(toplevel, text="Resume", command=resume, font=(dependencies.get_font_path(), 16))
-    exitbutton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
-    settingsbutton = ctk.CTkButton(toplevel, text="Settings", command=settings, font=(dependencies.get_font_path(), 16))
-    updatebutton = ctk.CTkButton(toplevel, text="Update", command=update, font=(dependencies.get_font_path(), 16))
-    scorebutton.pack()
-    public_leaderboard_button.pack()
-    resumebutton.pack()
-    exitbutton.pack()
-    settingsbutton.pack()
-    updatebutton.pack()
-
-    toplevel.wait_window()
-    return returncode
