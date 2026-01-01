@@ -168,8 +168,8 @@ else:
 if gui.main_menu(root) == "exit":
     sys.exit()
     
-HEIGHT = 800
-WIDTH = 1200
+HEIGHT = 400
+WIDTH = 800
 pygame.init()
 font = pygame.font.Font(dependencies.get_font_path(), 36)
 pygame.display.set_caption("skakavi krompir")
