@@ -8,7 +8,21 @@ import dependencies
 import os
 import sys
 
-# --- Easy PyQt Helpers ---
+def apply_breeze_dark(app):
+    try:
+        from breeze_style_sheets import qt6
+        # Start by seeing if we can just use the system's native breeze
+        from PyQt6.QtWidgets import QStyleFactory
+        if "Breeze" in QStyleFactory.keys():
+             app.setStyle("Breeze")
+        
+        # Then apply the high-quality stylesheet from the library
+        # This includes all the "real" assets from KDE
+        stylesheet = qt6.dark()
+        app.setStyleSheet(stylesheet)
+    except Exception as e:
+        print(f"Breeze theme loading failed: {e}. Falling back to default.")
+        app.setStyle("Fusion")
 
 def get_common_font(size=16):
     font_path = dependencies.get_font_path()

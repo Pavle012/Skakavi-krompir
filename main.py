@@ -147,6 +147,7 @@ import sys
 
 # Initialize QApplication for PyQt6 dialogs
 app = QApplication(sys.argv)
+gui.apply_breeze_dark(app)
 
 # Init
 rememberName = getSettings("rememberName") == "True"
