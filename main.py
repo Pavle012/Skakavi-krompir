@@ -33,12 +33,16 @@ speed_increase = 3
 ################### Classes ####################
 ################################################
 class pipe:
-    def __init__(self, x, y):
+    def __init__(self, x, y, is_top):
         self.x = x
         self.y = y
+        self.is_top = is_top
 
     def draw(self, screen):
-        pygame.draw.rect(screen, pipeColor, (self.x, self.y, 50, 300))
+        if self.is_top:
+            pygame.draw.rect(screen, pipeColor, (self.x, 0, 50, self.y + 300))
+        else:
+            pygame.draw.rect(screen, pipeColor, (self.x, self.y, 50, HEIGHT - self.y))
 
 ################################################
 ################### Functions ##################
@@ -46,7 +50,7 @@ class pipe:
 
 
 def restart():
-    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image
+    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT
     reloadSettings()
     velocity = 0
     x = 100
@@ -64,8 +68,8 @@ def restart():
     pipeColor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
     for i in range(pipeNumber):
         randomY = random.randint(-100, 100)
-        pipesPos.append((100 + (i * PIPE_SPACING), 0 + randomY))
-        pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY))
+        pipesPos.append((100 + (i * PIPE_SPACING), 0 + randomY, True))
+        pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY, False))
     
     # Reload the image in case it was changed
     image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
@@ -78,18 +82,20 @@ def isPotatoColliding(potato_surface, potato_rect):
     potato_mask = pygame.mask.from_surface(potato_surface)
 
     # Iterate over each pipe.
-    for px, py in pipesPos:
+    for px, py, is_top in pipesPos:
         realX = px + scroll
-        pipe_rect = pygame.Rect(realX, py, 50, 300)
+        if is_top:
+            pipe_rect = pygame.Rect(realX, 0, 50, py + 300)
+            pipe_mask = pygame.mask.Mask((50, py + 300), fill=True)
+        else:
+            pipe_rect = pygame.Rect(realX, py, 50, HEIGHT - py)
+            pipe_mask = pygame.mask.Mask((50, HEIGHT - py), fill=True)
 
         # First, a simple and fast bounding box check to see if they are even close.
         if not potato_rect.colliderect(pipe_rect):
             continue
 
         # If the bounding boxes overlap, perform a more accurate (and slower) pixel-perfect collision check.
-        # Create a mask for the pipe (a simple filled rectangle).
-        pipe_mask = pygame.mask.Mask((50, 300), fill=True)
-        
         # Calculate the offset between the potato and the pipe. This is the relative position
         # of the pipe's top-left corner from the potato's top-left corner.
         offset = (pipe_rect.x - potato_rect.x, pipe_rect.y - potato_rect.y)
@@ -103,9 +109,9 @@ def isPotatoColliding(potato_surface, potato_rect):
 
 def spawnPipe():
     global pipesPos, scroll, pipeColor, screen
-    for px, py in pipesPos:
+    for px, py, is_top in pipesPos:
         realX = px + scroll
-        pipe(realX, py).draw(screen)
+        pipe(realX, py, is_top).draw(screen)
 
 def getSettings(key: str) -> Optional[str]:
     settings = {}
@@ -167,7 +173,7 @@ WIDTH = 1200
 pygame.init()
 font = pygame.font.Font(dependencies.get_font_path(), 36)
 pygame.display.set_caption("skakavi krompir")
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
 image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 pygame.display.set_icon(image)
@@ -189,6 +195,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.VIDEORESIZE:
+            WIDTH, HEIGHT = event.size
+            screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
         if event.type == pygame.KEYDOWN and not paused:
             if event.key == pygame.K_SPACE:
                 velocity = -jumpVelocity
