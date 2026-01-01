@@ -64,12 +64,13 @@ def restart():
     pipeNumber = 500
     scroll = 500
     PIPE_SPACING = 300
+    GAP_SIZE = 300
     pipesPos = []
     pipeColor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
     for i in range(pipeNumber):
         randomY = random.randint(-100, 100)
-        pipesPos.append((100 + (i * PIPE_SPACING), 0 + randomY, True))
-        pipesPos.append((100 + (i * PIPE_SPACING), 600 + randomY, False))
+        pipesPos.append((100 + (i * PIPE_SPACING), (HEIGHT/2) + GAP_SIZE + -750 + randomY, True))
+        pipesPos.append((100 + (i * PIPE_SPACING), (HEIGHT/2) + GAP_SIZE + -150 + randomY, False))
     
     # Reload the image in case it was changed
     image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
