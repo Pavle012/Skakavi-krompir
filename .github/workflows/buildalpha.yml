@@ -38,7 +38,7 @@ jobs:
       - name: Build with Nuitka on Windows
         if: runner.os == 'Windows'
         run: |
-          python -m nuitka --onefile --jobs=1 --python-flag=no_docstrings --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --assume-yes-for-downloads --enable-plugin=tk-inter --lto=no main.py
+          python -m nuitka --onefile --jobs=4 --python-flag=no_docstrings --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --assume-yes-for-downloads --enable-plugin=tk-inter --lto=no main.py
           if (!(Test-Path dist)) { New-Item -ItemType Directory -Path dist }
           Move-Item main.exe dist/game.exe
 
