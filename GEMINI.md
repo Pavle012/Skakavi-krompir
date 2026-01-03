@@ -1,6 +1,6 @@
 # Project Overview
 
-This project is a "Flappy Bird-like" game called "Skakavi Krompir" (Jumpy Potato). It is written in Python and uses the following libraries:
+This project is a "Flappy Bird-like" game called "Skakavi Krompir". It is written in Python and uses the following libraries:
 
 *   **Pygame:** For the core game mechanics and rendering.
 *   **CustomTkinter:** For the user interface elements, such as menus, settings, and score display.

@@ -14,3 +14,4 @@ __pycache__/
 *.pyc
 .gemini/
 gha-creds-*.json
+GEMINI.md
