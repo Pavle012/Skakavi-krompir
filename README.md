@@ -1,4 +1,11 @@
-# Skakavi Krompir [![Build alpha](https://github.com/Pavle012/Skakavi-krompir/actions/workflows/buildalpha.yml/badge.svg)](https://github.com/Pavle012/Skakavi-krompir/actions/workflows/buildalpha.yml)
+# Skakavi Krompir
+
+<div align="right">
+
+[![Build alpha](https://github.com/Pavle012/Skakavi-krompir/actions/workflows/buildalpha.yml/badge.svg)](https://github.com/Pavle012/Skakavi-krompir/actions/workflows/buildalpha.yml)
+
+</div>
+
 
 ### A Flappy Bird-like game
 
