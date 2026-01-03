@@ -1,6 +1,6 @@
 name: Build alpha
 
-on: [push]
+on: [push, workflow_dispatch]
 
 permissions:
   contents: read
