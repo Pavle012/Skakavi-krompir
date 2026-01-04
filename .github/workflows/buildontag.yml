@@ -45,6 +45,51 @@ jobs:
         if: runner.os == 'Linux'
         run: python -m nuitka --onefile --jobs=$(nproc) --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes main.py
 
+      - name: Create .deb package on Linux
+        if: runner.os == 'Linux'
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
+          APP_NAME="Skakavi Krompir"
+          APP_ID="skakavi-krompir"
+          DEBIAN_PACKAGE_DIR="debian_package"
+          
+          # Create directory structure
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/DEBIAN
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/local/bin
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/applications
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps
+
+          # Copy executable
+          cp dist/Skakavi-Krompir-Linux ${DEBIAN_PACKAGE_DIR}/usr/local/bin/${APP_ID}
+
+          # Create control file
+          cat <<EOF > ${DEBIAN_PACKAGE_DIR}/DEBIAN/control
+          Package: ${APP_ID}
+          Version: ${VERSION}
+          Architecture: amd64
+          Maintainer: user <user@example.com>
+          Description: A Flappy Bird-like game.
+           Skakavi Krompir is a simple game where you control a potato and try to avoid obstacles.
+          Depends: libc6 (>= 2.35)
+          EOF
+
+          # Create desktop entry
+          cat <<EOF > ${DEBIAN_PACKAGE_DIR}/usr/share/applications/${APP_ID}.desktop
+          [Desktop Entry]
+          Name=${APP_NAME}
+          Exec=/usr/local/bin/${APP_ID}
+          Icon=/usr/share/pixmaps/${APP_ID}.png
+          Type=Application
+          Categories=Game;
+          EOF
+
+          # Copy icon
+          cp assets/potato.png ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps/${APP_ID}.png
+
+          # Build the .deb package. Output directly to dist folder.
+          dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_amd64.deb
+
       - uses: actions/upload-artifact@v4
         with:
           name: game-${{ matrix.os }}

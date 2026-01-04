@@ -49,6 +49,50 @@ jobs:
           mkdir -p dist
           mv main.bin dist/game
 
+      - name: Create .deb package on Linux
+        if: runner.os == 'Linux'
+        run: |
+          VERSION="alpha-$(git rev-parse --short HEAD)"
+          APP_NAME="Skakavi Krompir (Alpha)"
+          APP_ID="skakavi-krompir-alpha"
+          DEBIAN_PACKAGE_DIR="debian_package"
+          
+          # Create directory structure
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/DEBIAN
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/local/bin
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/applications
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps
+
+          # Copy executable
+          cp dist/game ${DEBIAN_PACKAGE_DIR}/usr/local/bin/${APP_ID}
+
+          # Create control file
+          cat <<EOF > ${DEBIAN_PACKAGE_DIR}/DEBIAN/control
+          Package: ${APP_ID}
+          Version: ${VERSION}
+          Architecture: amd64
+          Maintainer: user <user@example.com>
+          Description: A Flappy Bird-like game (Alpha build).
+           Skakavi Krompir is a simple game where you control a potato and try to avoid obstacles.
+          Depends: libc6 (>= 2.35)
+          EOF
+
+          # Create desktop entry
+          cat <<EOF > ${DEBIAN_PACKAGE_DIR}/usr/share/applications/${APP_ID}.desktop
+          [Desktop Entry]
+          Name=${APP_NAME}
+          Exec=/usr/local/bin/${APP_ID}
+          Icon=/usr/share/pixmaps/skakavi-krompir.png
+          Type=Application
+          Categories=Game;
+          EOF
+
+          # Copy icon
+          cp assets/potato.png ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps/skakavi-krompir.png
+
+          # Build the .deb package. Output directly to dist folder.
+          dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_amd64.deb
+
       - name: Upload artifact - Windows
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
@@ -56,9 +100,9 @@ jobs:
           name: game.exe
           path: dist/game.exe
 
-      - name: Upload artifact - Linux
+      - name: Upload artifact - Linux .deb
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: game
-          path: dist/game
+          name: skakavi-krompir-alpha-deb
+          path: dist/skakavi-krompir-alpha_*.deb

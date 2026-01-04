@@ -208,32 +208,6 @@ def create_shortcut():
             shortcut.save()
             print(f"Created shortcut at {shortcut_path}")
 
-        elif sys.platform == "linux":
-            # This part is for Linux
-            app_name = "Skakavi Krompir"
-            app_path = sys.argv[0]  # Use sys.argv[0] for the compiled app path
-            icon_path = os.path.abspath(get_potato_path())
-            
-            desktop_entry = f"""
-            [Desktop Entry]
-            Name={app_name}
-            Exec={app_path}
-            Icon={icon_path}
-            Type=Application
-            Categories=Game;
-            """
-            
-            # Create a .desktop file
-            applications_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "applications")
-            if not os.path.exists(applications_dir):
-                os.makedirs(applications_dir)
-            
-            desktop_file_path = os.path.join(applications_dir, f"{app_name}.desktop")
-            if os.path.exists(desktop_file_path):
-                os.remove(desktop_file_path)
 
-            with open(desktop_file_path, "w") as f:
-                f.write(desktop_entry)
-            print(f"Created desktop entry at {desktop_file_path}")
     else:
         print("Application not compiled. Skipping shortcut creation.")
