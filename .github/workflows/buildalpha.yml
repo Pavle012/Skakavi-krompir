@@ -52,7 +52,7 @@ jobs:
       - name: Create .deb package on Linux
         if: runner.os == 'Linux'
         run: |
-          VERSION="alpha-$(git rev-parse --short HEAD)"
+          VERSION="0.0.0-alpha-$(git rev-parse --short HEAD)"
           APP_NAME="Skakavi Krompir (Alpha)"
           APP_ID="skakavi-krompir-alpha"
           DEBIAN_PACKAGE_DIR="debian_package"
