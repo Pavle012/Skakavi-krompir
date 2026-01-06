@@ -13,6 +13,7 @@ import gui
 import scores
 import random
 import namecheck
+import modloader
 import datetime
 import os
 from typing import Optional
@@ -75,6 +76,7 @@ def restart():
     # Reload the image in case it was changed
     image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
     image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
+    modloader.trigger_on_restart()
 
 
 def isPotatoColliding(potato_surface, potato_rect):
@@ -193,6 +195,7 @@ if gui.main_menu(root) == "exit":
 HEIGHT = 400
 WIDTH = 800
 pygame.init()
+modloader.load_mods()
 font = pygame.font.Font(dependencies.get_font_path(), 36)
 pygame.display.set_caption("skakavi krompir")
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
@@ -215,6 +218,7 @@ while running:
     except:
         pass
     for event in pygame.event.get():
+        modloader.trigger_on_event(event)
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.VIDEORESIZE:
@@ -263,7 +267,7 @@ while running:
         text = font.render(text_str, True, (255, 255, 255))
 
         if just_resumed:
-            clock.tick(maxfps)
+            delta = clock.tick(maxfps) / 1000
             just_resumed = False
         else:
             delta = clock.get_time() / 1000
@@ -284,8 +288,30 @@ while running:
         # Create a new rect for the rotated image, ensuring its center matches the player's logical position.
         rotated_rect = rotated_image.get_rect(center=image.get_rect(topleft=(x, y)).center)
 
+        # Update mod-accessible game state
+        game_state_for_mods = {
+            "player_pos": (x, y),
+            "player_velocity": velocity,
+            "player_rect": rotated_rect,
+            "player_surface": rotated_image,
+            "pipes": pipesPos,
+            "scroll": scroll,
+            "width": WIDTH,
+            "height": HEIGHT,
+            "points": points,
+            "pipe_spacing": PIPE_SPACING,
+            "pipe_color": pipeColor
+        }
+        modloader.update_game_state(game_state_for_mods)
+
+        # Trigger mod hooks
+        modloader.trigger_on_update(delta)
+
         screen.blit(rotated_image, rotated_rect.topleft)
         screen.blit(text, (WIDTH - text.get_width() - 10, 10))
+        
+        modloader.trigger_on_draw(screen)
+
         # --- Collision Check ---
         if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image, rotated_rect):
             paused = True

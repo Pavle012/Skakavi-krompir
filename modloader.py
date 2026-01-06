@@ -1,0 +1,109 @@
+import os
+import sys
+import dependencies
+
+# Shared game state that mods can access
+game_state = {}
+
+# Storage for hooks
+_hooks = {
+    "on_update": [],
+    "on_draw": [],
+    "on_event": [],
+    "on_restart": [],
+}
+
+def update_game_state(new_state):
+    """Allow the main game to update the shared game state."""
+    global game_state
+    game_state.update(new_state)
+
+# --- Registration functions for mods ---
+def register_on_update(func):
+    """Register a function to be called every game frame."""
+    _hooks["on_update"].append(func)
+
+def register_on_draw(func):
+    """Register a function for custom drawing."""
+    _hooks["on_draw"].append(func)
+
+def register_on_event(func):
+    """Register a function to handle Pygame events."""
+    _hooks["on_event"].append(func)
+
+def register_on_restart(func):
+    """Register a function to be called when the game restarts."""
+    _hooks["on_restart"].append(func)
+
+# --- Trigger functions for the main game ---
+def trigger_on_update(delta):
+    """Execute all registered on_update hooks."""
+    for func in _hooks["on_update"]:
+        func(delta)
+
+def trigger_on_draw(screen):
+    """Execute all registered on_draw hooks."""
+    for func in _hooks["on_draw"]:
+        func(screen)
+
+def trigger_on_event(event):
+    """Execute all registered on_event hooks."""
+    for func in _hooks["on_event"]:
+        func(event)
+        
+def trigger_on_restart():
+    """Execute all registered on_restart hooks."""
+    for func in _hooks["on_restart"]:
+        func()
+
+def load_mods():
+    """Discover and load all mods from the project and user data directories."""
+    
+    # Define both directories
+    local_mods_dir = "mods"
+    user_mods_dir = os.path.join(dependencies.get_user_data_dir(), "mods")
+
+    # Ensure directories exist
+    if not os.path.exists(local_mods_dir):
+        os.makedirs(local_mods_dir)
+    if not os.path.exists(user_mods_dir):
+        os.makedirs(user_mods_dir)
+        print(f"Created user mods directory at: {user_mods_dir}")
+        
+    all_mod_files = {} # Use a dictionary to avoid duplicates, mapping filename to full path
+
+    # Discover mods in local directory
+    for f in os.listdir(local_mods_dir):
+        if f.endswith(".py"):
+            all_mod_files[f] = os.path.join(local_mods_dir, f)
+            
+    # Discover mods in user directory (will overwrite if names conflict, which is intended)
+    for f in os.listdir(user_mods_dir):
+        if f.endswith(".py"):
+            all_mod_files[f] = os.path.join(user_mods_dir, f)
+
+    if not all_mod_files:
+        print("No mods found in local or user directory.")
+        return
+        
+    print(f"Loading {len(all_mod_files)} mod(s):", ", ".join(m.replace('.py', '') for m in all_mod_files.keys()))
+
+    # API that will be exposed to the mods
+    mod_api = {
+        "register_on_update": register_on_update,
+        "register_on_draw": register_on_draw,
+        "register_on_event": register_on_event,
+        "register_on_restart": register_on_restart,
+        "game_state": game_state,
+    }
+
+    for mod_name, mod_path in all_mod_files.items():
+        try:
+            with open(mod_path, 'r') as f:
+                mod_code = f.read()
+                # Execute the mod's code in a context that has access to the mod_api
+                exec(mod_code, {"mod_api": mod_api})
+        except Exception as e:
+            print(f"Error loading mod '{mod_name}' from '{mod_path}': {e}", file=sys.stderr)
+
+    print("Mods loaded.")
