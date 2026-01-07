@@ -23,14 +23,16 @@ def on_draw_example(screen):
     """
     This function is for drawing custom graphics on the screen.
     `screen` is the main Pygame screen surface.
-    """
-    # Example: Draw a small red circle at position (20, 20)
-    try:
-        import pygame
-        pygame.draw.circle(screen, (255, 0, 0), (20, 20), 10)
-    except (ImportError, pygame.error):
-        # Pygame might not be available in all contexts, or drawing might fail
+    
+    You can also access the game_state if your function accepts two arguments:
+    def on_draw_example(screen, game_state):
+        # Example of accessing game state:
+        # player_pos = game_state.get('player_pos')
+        # if player_pos:
+        #     pygame.draw.circle(screen, (255, 255, 0), player_pos, 5)
         pass
+    """
+    pass
 
 def on_event_example(event):
     """
