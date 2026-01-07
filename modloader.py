@@ -15,7 +15,11 @@ _hooks = {
     "on_jump": [],
     "on_collision": [],
     "on_score": [],
-    "on_quit": []
+    "on_quit": [],
+    "on_main_menu": [],
+    "on_pause_screen": [],
+    "on_lose_screen": [],
+    "on_settings": []
 }
 
 def update_game_state(new_state):
@@ -143,6 +147,55 @@ def trigger_on_quit():
         except Exception as e:
             print(f"Error in on_quit hook: {e}")
 
+# --- GUI Hooks ---
+def register_on_main_menu(func):
+    """Register a function to be called when the main menu is shown."""
+    _hooks["on_main_menu"].append(func)
+
+def register_on_pause_screen(func):
+    """Register a function to be called when the pause screen is shown."""
+    _hooks["on_pause_screen"].append(func)
+
+def register_on_lose_screen(func):
+    """Register a function to be called when the lose screen is shown."""
+    _hooks["on_lose_screen"].append(func)
+
+def register_on_settings(func):
+    """Register a function to be called when the settings menu is shown."""
+    _hooks["on_settings"].append(func)
+
+def trigger_on_main_menu(window):
+    """Execute on_main_menu hooks, passing the window object."""
+    for func in _hooks["on_main_menu"]:
+        try:
+            func(window)
+        except Exception as e:
+            print(f"Error in on_main_menu hook: {e}")
+
+def trigger_on_pause_screen(window):
+    """Execute on_pause_screen hooks, passing the window object."""
+    for func in _hooks["on_pause_screen"]:
+        try:
+            func(window)
+        except Exception as e:
+            print(f"Error in on_pause_screen hook: {e}")
+
+def trigger_on_lose_screen(window):
+    """Execute on_lose_screen hooks, passing the window object."""
+    for func in _hooks["on_lose_screen"]:
+        try:
+            func(window)
+        except Exception as e:
+            print(f"Error in on_lose_screen hook: {e}")
+
+def trigger_on_settings(window):
+    """Execute on_settings hooks, passing the window object."""
+    for func in _hooks["on_settings"]:
+        try:
+            func(window)
+        except Exception as e:
+            print(f"Error in on_settings hook: {e}")
+
 def load_mods():
     """Discover and load all mods from the project and user data directories."""
     
@@ -185,6 +238,10 @@ def load_mods():
         "register_on_collision": register_on_collision,
         "register_on_score": register_on_score,
         "register_on_quit": register_on_quit,
+        "register_on_main_menu": register_on_main_menu,
+        "register_on_pause_screen": register_on_pause_screen,
+        "register_on_lose_screen": register_on_lose_screen,
+        "register_on_settings": register_on_settings,
         "game_state": game_state,
     }
 

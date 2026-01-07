@@ -43,6 +43,8 @@ Hooks are functions that let you "hook into" the game's loop at specific points.
 
 To register a hook, you call the corresponding registration function from the `api` and pass your function as an argument.
 
+#### Core Game Loop Hooks
+
 **`register_on_update(function)`**
 
 This hook is called on every single game frame. It's ideal for logic that needs to run continuously.
@@ -95,35 +97,7 @@ This hook is called every time the player restarts the game. It's useful for res
 
 -   **Parameters:** Your function receives no arguments.
 
-```python
-def on_game_restart():
-    print("The game has restarted!")
-
-api["register_on_restart"](on_game_restart)
-```
-
-### Modifying Game State
-
-Unlike before, the `game_state` is now **two-way synchronized**. This means you can modify values in the `game_state` dictionary, and the game will potentially adopt them in the next frame.
-
-You can modify:
-- `player_pos`: Tuple `(x, y)`. Teleport the player!
-- `player_velocity`: Float. Change jump height or gravity effects.
-- `points`: Int. Give the player free points.
-- `scroll`: Float. Fast forward or rewind time (visually).
-- `pipe_color`: Tuple `(r, g, b)`. Disco pipes?
-
-**Example: Super Jump**
-```python
-def super_jump():
-    state = api.get("game_state", {})
-    # Set negative velocity to jump up
-    state['player_velocity'] = -20 
-    
-api["register_on_jump"](super_jump)
-```
-
-### New Hooks
+#### Gameplay Hooks
 
 **`register_on_jump(function)`**
 Called when the player presses the jump button (Space or Click).
@@ -148,6 +122,50 @@ Called when the player's score increases.
 **`register_on_quit(function)`**
 Called when the game is closing.
 - **Parameter:** None.
+
+#### GUI Hooks
+
+You can inject custom widgets into the game's menus using these hooks. The passed argument is the raw `customtkinter.CTkToplevel` (or `CTk`) window object.
+
+**`register_on_main_menu(function)`**
+Called when the Main Menu is shown.
+- **Parameter:** `window` (the `CTkToplevel` instance).
+
+**`register_on_pause_screen(function)`**
+Called when the Pause Screen is shown.
+- **Parameter:** `window` (the `CTkToplevel` instance).
+
+**`register_on_lose_screen(function)`**
+Called when the Lose Screen is shown.
+- **Parameter:** `window` (the `CTkToplevel` instance).
+
+**`register_on_settings(function)`**
+Called when the Settings Menu is shown.
+- **Parameter:** `window` (the `CTkToplevel` instance).
+
+**Example: Adding a Button to the Pause Screen**
+
+```python
+import customtkinter as ctk
+
+def on_pause(window):
+    btn = ctk.CTkButton(window, text="Hello from Mod", command=lambda: print("Clicked!"))
+    btn.pack(pady=5)
+
+if api:
+    api["register_on_pause_screen"](on_pause)
+```
+
+### Modifying Game State
+
+Unlike before, the `game_state` is now **two-way synchronized**. This means you can modify values in the `game_state` dictionary, and the game will potentially adopt them in the next frame.
+
+You can modify:
+- `player_pos`: Tuple `(x, y)`. Teleport the player!
+- `player_velocity`: Float. Change jump height or gravity effects.
+- `points`: Int. Give the player free points.
+- `scroll`: Float. Fast forward or rewind time (visually).
+- `pipe_color`: Tuple `(r, g, b)`. Disco pipes?
 
 ## Example Mod: God Mode & Super Jump
 

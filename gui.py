@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import scores as scs
+import modloader
 import options
 import dependencies
 from PIL import Image, ImageTk
@@ -39,6 +40,7 @@ def lose_screen(root):
     exitbutton.pack()
     public_button.pack()
 
+    modloader.trigger_on_lose_screen(toplevel)
     toplevel.wait_window()
     if returncode == "exit":
         return "exit"
@@ -108,6 +110,7 @@ def main_menu(root):
     exitButton.pack(pady=5)
     
     toplevel.protocol("WM_DELETE_WINDOW", exit_game)
+    modloader.trigger_on_main_menu(toplevel)
     toplevel.wait_window()
     return returncode
 
@@ -162,5 +165,6 @@ def pause_screen(root):
     settingsbutton.pack()
     updatebutton.pack()
 
+    modloader.trigger_on_pause_screen(toplevel)
     toplevel.wait_window()
     return returncode
