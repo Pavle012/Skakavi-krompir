@@ -12,12 +12,20 @@ _hooks = {
     "on_draw": [],
     "on_event": [],
     "on_restart": [],
+    "on_jump": [],
+    "on_collision": [],
+    "on_score": [],
+    "on_quit": []
 }
 
 def update_game_state(new_state):
     """Allow the main game to update the shared game state."""
     global game_state
     game_state.update(new_state)
+
+def get_game_state():
+    """Return the current game state to the main game."""
+    return game_state
 
 # --- Registration functions for mods ---
 def register_on_update(func):
@@ -36,11 +44,33 @@ def register_on_restart(func):
     """Register a function to be called when the game restarts."""
     _hooks["on_restart"].append(func)
 
+def register_on_jump(func):
+    """Register a function to be called when the player jumps."""
+    _hooks["on_jump"].append(func)
+
+def register_on_collision(func):
+    """
+    Register a function to be called when a collision is detected.
+    The function should return False to cancel the collision (God Mode).
+    """
+    _hooks["on_collision"].append(func)
+
+def register_on_score(func):
+    """Register a function to be called when score increases."""
+    _hooks["on_score"].append(func)
+
+def register_on_quit(func):
+    """Register a function to be called when the game is quitting."""
+    _hooks["on_quit"].append(func)
+
 # --- Trigger functions for the main game ---
 def trigger_on_update(delta):
     """Execute all registered on_update hooks."""
     for func in _hooks["on_update"]:
-        func(delta)
+        try:
+            func(delta)
+        except Exception as e:
+            print(f"Error in on_update hook: {e}")
 
 def trigger_on_draw(screen, game_state):
     """Execute all registered on_draw hooks."""
@@ -60,12 +90,58 @@ def trigger_on_draw(screen, game_state):
 def trigger_on_event(event):
     """Execute all registered on_event hooks."""
     for func in _hooks["on_event"]:
-        func(event)
+        try:
+            func(event)
+        except Exception as e:
+            print(f"Error in on_event hook: {e}")
         
 def trigger_on_restart():
     """Execute all registered on_restart hooks."""
     for func in _hooks["on_restart"]:
-        func()
+        try:
+            func()
+        except Exception as e:
+            print(f"Error in on_restart hook: {e}")
+
+def trigger_on_jump():
+    """Execute on_jump hooks."""
+    for func in _hooks["on_jump"]:
+        try:
+            func()
+        except Exception as e:
+            print(f"Error in on_jump hook: {e}")
+
+def trigger_on_collision():
+    """
+    Execute on_collision hooks.
+    If ANY hook returns False, the collision is considered cancelled (God Mode).
+    Returns True if collision is valid, False if it was cancelled.
+    """
+    collision_valid = True
+    for func in _hooks["on_collision"]:
+        try:
+            result = func()
+            if result is False:
+                collision_valid = False
+        except Exception as e:
+            print(f"Error in on_collision hook: {e}")
+    return collision_valid
+
+def trigger_on_score(new_score):
+    """Execute on_score hooks."""
+    for func in _hooks["on_score"]:
+        try:
+            func(new_score)
+        except Exception as e:
+            print(f"Error in on_score hook: {e}")
+
+def trigger_on_quit():
+    """Execute on_quit hooks."""
+    for func in _hooks["on_quit"]:
+        try:
+            func()
+        except Exception as e:
+            print(f"Error in on_quit hook: {e}")
 
 def load_mods():
     """Discover and load all mods from the project and user data directories."""
@@ -105,6 +181,10 @@ def load_mods():
         "register_on_draw": register_on_draw,
         "register_on_event": register_on_event,
         "register_on_restart": register_on_restart,
+        "register_on_jump": register_on_jump,
+        "register_on_collision": register_on_collision,
+        "register_on_score": register_on_score,
+        "register_on_quit": register_on_quit,
         "game_state": game_state,
     }
 

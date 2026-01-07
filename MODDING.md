@@ -102,104 +102,74 @@ def on_game_restart():
 api["register_on_restart"](on_game_restart)
 ```
 
-### Shared Game State (`game_state`)
+### Modifying Game State
 
-The `mod_api` provides access to a `game_state` dictionary that contains read-only information about the current game session.
+Unlike before, the `game_state` is now **two-way synchronized**. This means you can modify values in the `game_state` dictionary, and the game will potentially adopt them in the next frame.
 
-You can access it via `api["game_state"]` or, more safely, `api.get("game_state", {})`. It is also passed as the second argument to `on_draw` hooks.
+You can modify:
+- `player_pos`: Tuple `(x, y)`. Teleport the player!
+- `player_velocity`: Float. Change jump height or gravity effects.
+- `points`: Int. Give the player free points.
+- `scroll`: Float. Fast forward or rewind time (visually).
+- `pipe_color`: Tuple `(r, g, b)`. Disco pipes?
 
-The dictionary contains the following keys:
+**Example: Super Jump**
+```python
+def super_jump():
+    state = api.get("game_state", {})
+    # Set negative velocity to jump up
+    state['player_velocity'] = -20 
+    
+api["register_on_jump"](super_jump)
+```
 
-| Key               | Type               | Description                                           |
-| ----------------- | ------------------ | ----------------------------------------------------- |
-| `player_pos`      | `tuple` (x, y)     | The logical top-left coordinates of the player.       |
-| `player_velocity` | `float`            | The current vertical velocity of the player.          |
-| `player_rect`     | `pygame.Rect`      | The bounding rectangle of the rotated player sprite.  |
-| `player_surface`  | `pygame.Surface`   | The rotated player image surface.                     |
-| `pipes`           | `list` of `tuples` | A list of all pipes. Each is `(x, y, is_top)`.        |
-| `scroll`          | `float`            | The current horizontal scroll position of the world.  |
-| `width`           | `int`              | The current width of the game window.                 |
-| `height`          | `int`              | The current height of the game window.                |
-| `points`          | `int`              | The current score.                                    |
-| `pipe_spacing`    | `int`              | The horizontal distance between pipes.                |
-| `pipe_color`      | `tuple` (r, g, b)  | The current color of the pipes.                       |
+### New Hooks
 
+**`register_on_jump(function)`**
+Called when the player presses the jump button (Space or Click).
+- **Parameter:** None.
 
-## Example Mod
-
-This example mod demonstrates how to use the different hooks. You can find this file in `mods/example.py`.
+**`register_on_collision(function)`**
+Called when the player hits a pipe or the ground.
+- **Parameter:** None.
+- **Return Value:** If your function returns `False`, the collision is **cancelled**. This effectively gives you God Mode.
 
 ```python
-# Example Mod for Skakavi Krompir
+def god_mode():
+    return False # I refuse to die
 
+api["register_on_collision"](god_mode)
+```
+
+**`register_on_score(function)`**
+Called when the player's score increases.
+- **Parameter:** `new_score` (int).
+
+**`register_on_quit(function)`**
+Called when the game is closing.
+- **Parameter:** None.
+
+## Example Mod: God Mode & Super Jump
+
+```python
 try:
-    # mod_api is injected by the modloader
     api = mod_api
 except NameError:
-    print("This script is a mod and is not meant to be run directly.")
     api = None
 
-def on_update_example(delta):
-    """
-    This function will be called every frame.
-    `delta` is the time in seconds since the last frame.
-    Access game_state via the api dictionary.
-    """
-    game_state = api.get("game_state", {})
-    # Example of accessing game state:
-    if game_state and game_state.get('points', 0) > 5:
-        print(f"Wow, you have more than 5 points!")
-
-
-def on_draw_example(screen, game_state):
-    """
-    This function is for drawing custom graphics on the screen.
-    `screen` is the main Pygame screen surface.
-    `game_state` has the current game data.
-    """
-    try:
-        import pygame
-        # Draw a semi-transparent circle around the potato
-        player_rect = game_state.get('player_rect')
-        if player_rect:
-            # Create a separate surface for the circle to handle transparency
-            radius = player_rect.width / 2 + 10
-            circle_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-            pygame.draw.circle(circle_surface, (255, 255, 0, 100), (radius, radius), radius)
-            screen.blit(circle_surface, (player_rect.centerx - radius, player_rect.centery - radius))
-
-    except ImportError:
-        pass # Pygame not available
-
-def on_event_example(event):
-    """
-    This function is called for each Pygame event.
-    """
-    try:
-        import pygame
-        if event.type == pygame.KEYDOWN:
-            # Example of using an event
-            if event.key == pygame.K_h:
-                print("Mod detected 'h' key press!")
-    except (ImportError, pygame.error):
-        pass
-
-def on_restart_example():
-    """
-    This function is called every time the game restarts.
-    """
-    print("Mod 'example' detected game restart!")
-
-
-# --- Registration ---
-# Make sure the api is available before registering hooks
 if api:
-    print("Registering example_mod hooks...")
-    api["register_on_update"](on_update_example)
-    api["register_on_draw"](on_draw_example)
-    api["register_on_event"](on_event_example)
-    api["register_on_restart"](on_restart_example)
-    print("example_mod hooks registered.")
+    def on_jump_hook():
+        print("Super Jump Activated!")
+        state = api["game_state"]
+        # Make the jump twice as strong
+        state["player_velocity"] = -15 
+
+    def on_collision_hook():
+        print("Collision avoided! God Mode active.")
+        return False # Cancel collision
+
+    api["register_on_jump"](on_jump_hook)
+    api["register_on_collision"](on_collision_hook)
 ```
 
 Happy modding!

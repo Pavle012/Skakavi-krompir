@@ -220,12 +220,14 @@ while running:
     for event in pygame.event.get():
         modloader.trigger_on_event(event)
         if event.type == pygame.QUIT:
+            modloader.trigger_on_quit()
             running = False
         if event.type == pygame.VIDEORESIZE:
             WIDTH, HEIGHT = event.size
             screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
         if event.type == pygame.KEYDOWN and not paused:
             if event.key == pygame.K_SPACE:
+                modloader.trigger_on_jump()
                 velocity = -jumpVelocity
             if event.key == pygame.K_ESCAPE:
                 paused = True
@@ -253,16 +255,23 @@ while running:
                         just_resumed = True
                         paused = False
         if event.type == pygame.MOUSEBUTTONDOWN and not paused:
+            modloader.trigger_on_jump()
             velocity = -jumpVelocity
 
     if not paused:
         screen.fill((66, 183, 237))
 
         spawnPipe()
+        spawnPipe()
         if (-scroll // PIPE_SPACING) < 0:
-            points = 0
+            new_points = 0
         else:
-            points = int(-scroll // PIPE_SPACING + 1)
+            new_points = int(-scroll // PIPE_SPACING + 1)
+        
+        if new_points > points:
+            modloader.trigger_on_score(new_points)
+        points = new_points
+            
         text_str = f"Points: {points}"
         text = font.render(text_str, True, (255, 255, 255))
 
@@ -306,6 +315,22 @@ while running:
 
         # Trigger mod hooks
         modloader.trigger_on_update(delta)
+        
+        # Pull state back from mods
+        new_state = modloader.get_game_state()
+        if new_state:
+            # Safely update local variables if they exist in the pushed state
+            # We trust mods to provide correct types, but basic safety could be added.
+            if "player_pos" in new_state and isinstance(new_state["player_pos"], (tuple, list)) and len(new_state["player_pos"]) == 2:
+                x, y = new_state["player_pos"]
+            if "player_velocity" in new_state:
+                velocity = new_state["player_velocity"]
+            if "scroll" in new_state:
+                scroll = new_state["scroll"]
+            if "points" in new_state:
+                points = new_state["points"]
+            if "pipe_color" in new_state:
+                pipeColor = new_state["pipe_color"]
 
         screen.blit(rotated_image, rotated_rect.topleft)
         screen.blit(text, (WIDTH - text.get_width() - 10, 10))
@@ -313,7 +338,14 @@ while running:
         modloader.trigger_on_draw(screen, game_state_for_mods)
 
         # --- Collision Check ---
-        if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image, rotated_rect):
+        # Only check collision if not cancelled by mods (God Mode)
+        collision_detected = y > HEIGHT or y < 0 or isPotatoColliding(rotated_image, rotated_rect)
+        if collision_detected:
+            if not modloader.trigger_on_collision():
+                 # Collision was cancelled by a mod
+                 collision_detected = False
+        
+        if collision_detected:
             paused = True
             appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
             scores.submit_score(name, points)
