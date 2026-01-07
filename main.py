@@ -310,7 +310,7 @@ while running:
         screen.blit(rotated_image, rotated_rect.topleft)
         screen.blit(text, (WIDTH - text.get_width() - 10, 10))
         
-        modloader.trigger_on_draw(screen)
+        modloader.trigger_on_draw(screen, game_state_for_mods)
 
         # --- Collision Check ---
         if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image, rotated_rect):

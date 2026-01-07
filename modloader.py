@@ -1,6 +1,7 @@
 import os
 import sys
 import dependencies
+import inspect
 
 # Shared game state that mods can access
 game_state = {}
@@ -41,10 +42,20 @@ def trigger_on_update(delta):
     for func in _hooks["on_update"]:
         func(delta)
 
-def trigger_on_draw(screen):
+def trigger_on_draw(screen, game_state):
     """Execute all registered on_draw hooks."""
     for func in _hooks["on_draw"]:
-        func(screen)
+        try:
+            sig = inspect.signature(func)
+            num_params = len(sig.parameters)
+            if num_params == 1:
+                func(screen)
+            elif num_params == 2:
+                func(screen, game_state)
+            else:
+                print(f"Warning: on_draw hook '{func.__name__}' has an unsupported number of parameters ({num_params}). Expected 1 or 2.", file=sys.stderr)
+        except Exception as e:
+            print(f"Error executing on_draw hook '{func.__name__}': {e}", file=sys.stderr)
 
 def trigger_on_event(event):
     """Execute all registered on_event hooks."""
