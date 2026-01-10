@@ -2,6 +2,7 @@ from PIL import Image, ImageTk
 import customtkinter as ctk
 from customtkinter import filedialog
 import shutil
+import modloader
 import dependencies
 import os
 
@@ -147,6 +148,7 @@ def options(root):
     resetSettingsButton = ctk.CTkButton(toplevel, text="Reset Settings", command=lambda: reset_settings(), font=(dependencies.get_font_path(), 12))
     resetSettingsButton.pack()
     
+    modloader.trigger_on_settings(toplevel)
     toplevel.wait_window()
 
 
