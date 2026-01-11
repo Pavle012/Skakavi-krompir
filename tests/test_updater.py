@@ -23,7 +23,7 @@ def test_start_update_linux():
                             updater.start_update("/app/game")
                             
                             expected_url = "https://raw.githubusercontent.com/Pavle012/Skakavi-krompir/main/updater.sh"
-                            expected_script = "/tmp/updater.sh"
+                            expected_script = os.path.join('/tmp', 'updater.sh')
                             
                             mock_download.assert_called_once_with(expected_url, expected_script)
                             mock_chmod.assert_called_once_with(expected_script, 0o755)
