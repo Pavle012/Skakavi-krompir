@@ -26,7 +26,9 @@ def test_get_user_data_dir_linux(monkeypatch):
         with patch('os.makedirs'):
             with patch('os.path.exists', return_value=True):
                 data_dir = dependencies.get_user_data_dir()
-                assert data_dir == '/home/user/.local/share/SkakaviKrompir'
+                # Use normpath to handle platform-specific separators
+                expected = os.path.normpath('/home/user/.local/share/SkakaviKrompir')
+                assert data_dir == expected
 
 def test_get_user_data_dir_windows(monkeypatch):
     monkeypatch.setattr(sys, 'platform', 'win32')
@@ -46,15 +48,21 @@ def test_resource_path_dev(monkeypatch):
         assert os.path.basename(path) == 'potato.png'
         assert os.path.isabs(path)
 
-@patch('dependencies.get_user_data_dir', return_value='/tmp/data')
-@patch('os.path.exists', side_effect=lambda x: x == '/tmp/data/potato.png')
-def test_get_potato_path_custom(mock_exists, mock_get_user_data):
-    path = dependencies.get_potato_path()
-    assert path == '/tmp/data/potato.png'
+def test_get_potato_path_custom(monkeypatch):
+    expected_data_dir = os.path.normpath('/tmp/data')
+    expected_path = os.path.join(expected_data_dir, "potato.png")
+    
+    with patch('dependencies.get_user_data_dir', return_value=expected_data_dir):
+        with patch('os.path.exists', side_effect=lambda x: os.path.normpath(x) == expected_path):
+            path = dependencies.get_potato_path()
+            assert path == expected_path
 
-@patch('dependencies.get_user_data_dir', return_value='/tmp/data')
-@patch('os.path.exists', return_value=False)
-@patch('dependencies.resource_path', return_value='/app/assets/potato.png')
-def test_get_potato_path_default(mock_res_path, mock_exists, mock_get_user_data):
-    path = dependencies.get_potato_path()
-    assert path == '/app/assets/potato.png'
+def test_get_potato_path_default(monkeypatch):
+    expected_data_dir = os.path.normpath('/tmp/data')
+    expected_res_path = os.path.normpath('/app/assets/potato.png')
+    
+    with patch('dependencies.get_user_data_dir', return_value=expected_data_dir):
+        with patch('os.path.exists', return_value=False):
+            with patch('dependencies.resource_path', return_value=expected_res_path):
+                path = dependencies.get_potato_path()
+                assert path == expected_res_path
