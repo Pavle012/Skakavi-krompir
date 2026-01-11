@@ -18,16 +18,22 @@ def test_start_update_linux():
             with patch('subprocess.Popen') as mock_popen:
                 with patch('os.chmod') as mock_chmod:
                     with patch('tempfile.gettempdir', return_value='/tmp'):
-                        updater.start_update("/app/game")
-                        
-                        expected_url = "https://raw.githubusercontent.com/Pavle012/Skakavi-krompir/main/updater.sh"
-                        expected_script = "/tmp/updater.sh"
-                        
-                        mock_download.assert_called_once_with(expected_url, expected_script)
-                        mock_chmod.assert_called_once_with(expected_script, 0o755)
-                        
-                        cmd = mock_popen.call_args[0][0]
-                        assert cmd == ['bash', expected_script, '/app/game']
+                        # On Windows, os.setsid doesn't exist, so we must mock it since we are forcing "Linux" path
+                        with patch('os.setsid', create=True) as mock_setsid:
+                            updater.start_update("/app/game")
+                            
+                            expected_url = "https://raw.githubusercontent.com/Pavle012/Skakavi-krompir/main/updater.sh"
+                            expected_script = "/tmp/updater.sh"
+                            
+                            mock_download.assert_called_once_with(expected_url, expected_script)
+                            mock_chmod.assert_called_once_with(expected_script, 0o755)
+                            
+                            cmd = mock_popen.call_args[0][0]
+                            assert cmd == ['bash', expected_script, '/app/game']
+                            
+                            # Verify preexec_fn was passed correctly (it should be the mock)
+                            kwargs = mock_popen.call_args[1]
+                            assert kwargs['preexec_fn'] == mock_setsid
 
 def test_start_update_windows():
     with patch('platform.system', return_value='Windows'):
@@ -53,6 +59,8 @@ def test_start_update_windows():
 def test_start_update_exception(capsys):
     with patch('platform.system', return_value='Linux'):
         with patch('urllib.request.urlretrieve', side_effect=Exception("Network Down")):
-             updater.start_update("game")
-             captured = capsys.readouterr()
-             assert "An error occurred during the update process: Network Down" in captured.err
+             # Mock setsid here too
+             with patch('os.setsid', create=True):
+                 updater.start_update("game")
+                 captured = capsys.readouterr()
+                 assert "An error occurred during the update process: Network Down" in captured.err

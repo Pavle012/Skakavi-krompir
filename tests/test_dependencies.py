@@ -27,8 +27,11 @@ def test_get_user_data_dir_linux(monkeypatch):
             with patch('os.path.exists', return_value=True):
                 data_dir = dependencies.get_user_data_dir()
                 # Use normpath to handle platform-specific separators
-                expected = os.path.normpath('/home/user/.local/share/SkakaviKrompir')
-                assert data_dir == expected
+                expected_suffix = '.local/share/SkakaviKrompir'
+                # On Windows, data_dir might be mixed like /home/user\.local\share\SkakaviKrompir
+                # We normalize both to forward slashes for robust comparison
+                assert data_dir.replace('\\', '/').endswith(expected_suffix)
+                assert data_dir.replace('\\', '/').startswith('/home/user')
 
 def test_get_user_data_dir_windows(monkeypatch):
     monkeypatch.setattr(sys, 'platform', 'win32')
