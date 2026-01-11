@@ -1,6 +1,7 @@
 {
     "github-actions.workflows.pinned.workflows": [
         ".github/workflows/buildalpha.yml",
-        ".github/workflows/buildontag.yml"
+        ".github/workflows/buildontag.yml",
+        ".github/workflows/tests.yml"
     ]
 }
