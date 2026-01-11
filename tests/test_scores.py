@@ -31,3 +31,26 @@ def test_get_leaderboard_success(mock_get):
 def test_get_leaderboard_failure(mock_get):
     lb = scores.get_leaderboard()
     assert lb is None
+
+@patch('requests.post', side_effect=requests.exceptions.RequestException)
+def test_submit_score_failure(mock_post):
+    # Should catch exception and print, not crash
+    scores.submit_score("Player1", 100)
+    mock_post.assert_called_once()
+
+@patch('requests.post')
+def test_submit_score_status_error(mock_post):
+    mock_post.return_value.status_code = 500
+    mock_post.return_value.raise_for_status.side_effect = requests.exceptions.HTTPError
+    
+    scores.submit_score("Player1", 100)
+    mock_post.return_value.raise_for_status.assert_called_once()
+
+@patch('requests.get')
+def test_get_leaderboard_status_error(mock_get):
+    mock_get.return_value.status_code = 404
+    mock_get.return_value.raise_for_status.side_effect = requests.exceptions.HTTPError
+    
+    lb = scores.get_leaderboard()
+    assert lb is None
+    mock_get.return_value.raise_for_status.assert_called_once()
