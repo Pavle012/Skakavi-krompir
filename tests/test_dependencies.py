@@ -32,7 +32,7 @@ def test_get_user_data_dir_linux(monkeypatch):
                 # We normalize both to forward slashes for robust comparison
                 assert data_dir.replace('\\', '/').endswith(expected_suffix)
                 assert data_dir.replace('\\', '/').startswith('/home/user')
-
+                expected_suffix = os.path.join('.local', 'share', 'SkakaviKrompir')
 def test_get_user_data_dir_windows(monkeypatch):
     monkeypatch.setattr(sys, 'platform', 'win32')
     monkeypatch.setenv('APPDATA', 'C:\\Users\\user\\AppData\\Roaming')
