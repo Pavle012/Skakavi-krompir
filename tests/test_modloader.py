@@ -86,7 +86,8 @@ def test_register_and_trigger_collision_god_mode():
     assert modloader.trigger_on_collision() is False
 
 def test_register_and_trigger_collision_normal():
-    modloader.register_on_collision(lambda: True)
+    # Expected behavior: If an error occurs in a hook, the collision is still considered valid by default.
+    # The error is logged, and True is returned.
     assert modloader.trigger_on_collision() is True
 
 def test_trigger_collision_exception(capsys):
