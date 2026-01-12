@@ -44,7 +44,7 @@ def test_start_update_windows():
                 with patch('tempfile.gettempdir', return_value='C:\\Temp'):
                     with patch('os.chmod'): # Prevent FileNotFoundError on Linux
                         # Windows paths in arguments can be tricky in tests on Linux,
-                        # but the logic just passes strings.
+                    with patch('os.chmod'): # Mock os.chmod to prevent FileNotFoundError on the test runner's OS
                         updater.start_update("C:\\Game\\game.exe")
                         
                         expected_url = "https://raw.githubusercontent.com/Pavle012/Skakavi-krompir/main/updater.bat"
