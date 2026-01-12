@@ -20,7 +20,9 @@ def test_start_update_linux():
                     with patch('tempfile.gettempdir', return_value='/tmp'):
                         # On Windows, os.setsid doesn't exist, so we must mock it since we are forcing "Linux" path
                         with patch('os.setsid', create=True) as mock_setsid:
-                            updater.start_update("/app/game")
+                            # Also format os.name to posix so that it tries to run chmod
+                            with patch('os.name', 'posix'):
+                                updater.start_update("/app/game")
                             
                             expected_url = "https://raw.githubusercontent.com/Pavle012/Skakavi-krompir/main/updater.sh"
                             expected_script = os.path.join('/tmp', 'updater.sh')
