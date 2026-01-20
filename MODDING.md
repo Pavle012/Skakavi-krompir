@@ -21,6 +21,41 @@ The game will create this directory for you on the first run. You will need to c
 
 > **Note:** If a mod in the user data directory has the same filename as a mod in the project directory, the one in the user data directory will be loaded, overriding the project one.
 
+### Mod File Formats
+
+1.  **Python Script (`.py`):** Simple, single-file mods.
+2.  **Skakavi Mod Archive (`.skmod`):** A ZIP archive containing multiple files. (See ".skmod Format" below).
+
+## .skmod Format
+
+A `.skmod` file is simply a standard ZIP file with a different extension. It allows you to bundle code, assets, and other resources together.
+
+### Structure
+
+Every `.skmod` must contain a `mod.json` file at the root.
+
+**Example `mod.json`:**
+```json
+{
+  "name": "Super Mod",
+  "version": "1.0.0",
+  "entry_point": "main.py",
+  "author": "You"
+}
+```
+
+*   **`name`**: The friendly name of your mod.
+*   **`version`**: The version string.
+*   **`entry_point`**: (Optional) The Python script to run when the mod loads. Defaults to `main.py`.
+
+### How it works
+
+When the game loads a `.skmod`:
+1.  It extracts the contents to a temporary directory.
+2.  It reads `mod.json` to find the entry point.
+3.  It adds the temporary directory to the Python path, so you can import other scripts inside your mod (e.g., `import my_helper`).
+4.  It executes the entry point script.
+
 ## The Modding API (`mod_api`)
 
 When the game loads your mod, it injects a global dictionary called `mod_api` into your script's scope. This API is your gateway to interacting with the game.

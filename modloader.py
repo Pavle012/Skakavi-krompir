@@ -2,6 +2,11 @@ import os
 import sys
 import dependencies
 import inspect
+import zipfile
+import json
+import tempfile
+import shutil
+import atexit
 
 # Shared game state that mods can access
 game_state = {}
@@ -196,6 +201,72 @@ def trigger_on_settings(window):
         except Exception as e:
             print(f"Error in on_settings hook: {e}")
 
+def load_mod_from_source(source, mod_api, is_file=True):
+    """Helper to load mod code from a string or file."""
+    try:
+        if is_file:
+            with open(source, 'r') as f:
+                mod_code = f.read()
+            filename = source
+        else:
+            mod_code = source
+            filename = "<string>"
+            
+        exec(mod_code, {"mod_api": mod_api})
+    except Exception as e:
+        print(f"Error loading mod: {e}", file=sys.stderr)
+
+def load_skmod(mod_path, mod_api):
+    """Load a mod from a .skmod (zip) file."""
+    try:
+        # Create a temporary directory for the mod
+        temp_dir = tempfile.mkdtemp(prefix="sk_mod_")
+        
+        # Register cleanup on exit
+        def cleanup_temp_mod():
+             try:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+             except:
+                pass
+        atexit.register(cleanup_temp_mod)
+        
+        # Extract the zip file
+        with zipfile.ZipFile(mod_path, 'r') as zip_ref:
+            zip_ref.extractall(temp_dir)
+            
+        # Basic validation: check for mod.json
+        mod_json_path = os.path.join(temp_dir, 'mod.json')
+        if not os.path.exists(mod_json_path):
+             print(f"Error: .skmod file '{mod_path}' missing mod.json", file=sys.stderr)
+             return
+
+        with open(mod_json_path, 'r') as f:
+            metadata = json.load(f)
+            
+        entry_point = metadata.get('entry_point', 'main.py')
+        entry_path = os.path.join(temp_dir, entry_point)
+        
+        if not os.path.exists(entry_path):
+             print(f"Error: Entry point '{entry_point}' not found in '{mod_path}'", file=sys.stderr)
+             return
+             
+        # Add to sys.path so imports work
+        if temp_dir not in sys.path:
+            sys.path.insert(0, temp_dir)
+            
+        print(f"Loading .skmod '{metadata.get('name', 'Unknown')}' version {metadata.get('version', '?')}...")
+        
+        # Load the entry point
+        with open(entry_path, 'r') as f:
+             mod_code = f.read()
+             
+        # Execute in a context with mod_api
+        # We also pass __file__ as the entry path so the mod knows where it is
+        exec(mod_code, {"mod_api": mod_api, "__file__": entry_path})
+        
+    except Exception as e:
+        print(f"Error loading .skmod '{mod_path}': {e}", file=sys.stderr)
+
 def load_mods():
     """Discover and load all mods from the project and user data directories."""
     
@@ -210,23 +281,23 @@ def load_mods():
         os.makedirs(user_mods_dir)
         print(f"Created user mods directory at: {user_mods_dir}")
         
-    all_mod_files = {} # Use a dictionary to avoid duplicates, mapping filename to full path
+    all_mod_files = {} # Filename -> Full Path
+    
+    # helper to add files
+    def scan_dir(directory):
+        if not os.path.exists(directory): return
+        for f in os.listdir(directory):
+            if f.endswith(".py") or f.endswith(".skmod"):
+                all_mod_files[f] = os.path.join(directory, f)
 
-    # Discover mods in local directory
-    for f in os.listdir(local_mods_dir):
-        if f.endswith(".py"):
-            all_mod_files[f] = os.path.join(local_mods_dir, f)
-            
-    # Discover mods in user directory (will overwrite if names conflict, which is intended)
-    for f in os.listdir(user_mods_dir):
-        if f.endswith(".py"):
-            all_mod_files[f] = os.path.join(user_mods_dir, f)
+    scan_dir(local_mods_dir)
+    scan_dir(user_mods_dir) # User mods override local mods with same name
 
     if not all_mod_files:
         print("No mods found in local or user directory.")
         return
         
-    print(f"Loading {len(all_mod_files)} mod(s):", ", ".join(m.replace('.py', '') for m in all_mod_files.keys()))
+    print(f"Found {len(all_mod_files)} mod(s).")
 
     # API that will be exposed to the mods
     mod_api = {
@@ -245,13 +316,16 @@ def load_mods():
         "game_state": game_state,
     }
 
-    for mod_name, mod_path in all_mod_files.items():
-        try:
-            with open(mod_path, 'r') as f:
-                mod_code = f.read()
-                # Execute the mod's code in a context that has access to the mod_api
-                exec(mod_code, {"mod_api": mod_api})
-        except Exception as e:
-            print(f"Error loading mod '{mod_name}' from '{mod_path}': {e}", file=sys.stderr)
+    for mod_filename, mod_path in all_mod_files.items():
+        if mod_filename.endswith(".skmod"):
+            load_skmod(mod_path, mod_api)
+        elif mod_filename.endswith(".py"):
+             try:
+                print(f"Loading mod script: {mod_filename}")
+                with open(mod_path, 'r') as f:
+                    mod_code = f.read()
+                    exec(mod_code, {"mod_api": mod_api, "__file__": mod_path})
+             except Exception as e:
+                print(f"Error loading mod '{mod_filename}': {e}", file=sys.stderr)
 
     print("Mods loaded.")
