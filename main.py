@@ -1,4 +1,8 @@
 import sys
+import argparse
+import json
+import threading
+import time
 import dependencies
 from dependencies import is_compiled
 
@@ -7,6 +11,30 @@ if not is_compiled():
     dependencies.fetch_assets()
 dependencies.install_configs()
 dependencies.load_global_icon_pil()
+
+# Argument Parsing
+parser = argparse.ArgumentParser(description="Skakavi Krompir Game")
+parser.add_argument("--data-dir", type=str, help="Path to custom data directory")
+args = parser.parse_args()
+
+if args.data_dir:
+    dependencies.set_custom_data_dir(args.data_dir)
+    if not os.path.exists(args.data_dir):
+        os.makedirs(args.data_dir)
+
+# Helper for status dumping
+def dump_status(status_text, score, state):
+    try:
+        data = {
+            "status": status_text,
+            "score": score,
+            "state": state,
+            "timestamp": time.time()
+        }
+        with open(os.path.join(dependencies.get_user_data_dir(), "status.json"), "w") as f:
+            json.dump(data, f)
+    except Exception:
+        pass
 
 import pygame
 import gui
@@ -211,6 +239,8 @@ restart()
 running = True
 just_resumed = False
 
+dump_status("Playing", points, "playing")
+
 while running:
     try:
         root.update()
@@ -231,6 +261,7 @@ while running:
                 velocity = -jumpVelocity
             if event.key == pygame.K_ESCAPE:
                 paused = True
+                dump_status("Paused", points, "paused")
                 afterpause = gui.pause_screen(root)
                 if afterpause == "exit":
                     running = False
@@ -243,6 +274,7 @@ while running:
                         appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
                         scores.submit_score(name, points)
                         reloadSettings()
+                        dump_status("Game Over", points, "game_over")
                         afterpause2 = gui.lose_screen(root)
                         if afterpause2 == "exit":
                             running = False
@@ -254,6 +286,7 @@ while running:
                         clock.tick(maxfps)  # Reset clock to avoid large delta
                         just_resumed = True
                         paused = False
+                        dump_status("Playing", points, "playing")
         if event.type == pygame.MOUSEBUTTONDOWN and not paused:
             modloader.trigger_on_jump()
             velocity = -jumpVelocity
@@ -347,6 +380,7 @@ while running:
         
         if collision_detected:
             paused = True
+            dump_status("Game Over", points, "game_over")
             appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
             scores.submit_score(name, points)
             reloadSettings()
@@ -359,3 +393,4 @@ while running:
         pygame.display.update()
 
 pygame.quit()
+dump_status("Stopped", points, "stopped")
