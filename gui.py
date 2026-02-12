@@ -7,45 +7,7 @@ from PIL import Image, ImageTk
 import os
 returncode = "error"
 
-def lose_screen(root):
-    global returncode
-    toplevel = ctk.CTkToplevel(root)
-    toplevel.title("skakavi krompir")
-    toplevel.geometry("300x200")
-
-    def exit_game():
-        global returncode
-        returncode = "exit"
-        toplevel.destroy()
-    
-    def restart():
-        global returncode
-        returncode = "restart"
-        toplevel.destroy()
-    
-    # Use the globally loaded icon
-    pil_icon = dependencies.get_global_icon_pil()
-    if pil_icon:
-        icon_photo = ImageTk.PhotoImage(pil_icon)
-        toplevel._icon_photo_ref = icon_photo # Keep a strong reference
-        toplevel.iconphoto(True, icon_photo)
-    loselabel = ctk.CTkLabel(toplevel, text="You lost!", font=(dependencies.get_font_path(), 24))
-    loselabel.pack()
-    
-    toplevel.bind("<Return>", lambda e: restart())
-    restartbutton = ctk.CTkButton(toplevel, text="Restart", command=restart, font=(dependencies.get_font_path(), 16))
-    exitbutton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
-    public_button = ctk.CTkButton(toplevel, text="Public Leaderboard", command=lambda: scs.start_public(root), font=(dependencies.get_font_path(), 16))
-    restartbutton.pack()
-    exitbutton.pack()
-    public_button.pack()
-
-    modloader.trigger_on_lose_screen(toplevel)
-    toplevel.wait_window()
-    if returncode == "exit":
-        return "exit"
-    elif returncode == "restart":
-        return "restart"
+# lose_screen has been moved to main.py using Pygame
 
 
 def setSettings(key, newValue):
