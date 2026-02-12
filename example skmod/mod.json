@@ -1,0 +1,5 @@
+{
+    "name": "Test Mod",
+    "version": "1.0",
+    "entry_point": "main.py"
+}

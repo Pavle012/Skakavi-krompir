@@ -7,6 +7,12 @@ from PIL import Image, ImageTk # Added ImageTk
 
 
 global_icon_pil_image = None # Only global PIL Image
+custom_data_dir = None
+
+
+def set_custom_data_dir(path):
+    global custom_data_dir
+    custom_data_dir = path
 
 
 def is_compiled():
@@ -65,7 +71,9 @@ def resource_path(relative_path):
 def get_user_data_dir():
     """ Get path to user data directory, create it if it doesn't exist """
     app_name = "SkakaviKrompir"
-    if sys.platform == "win32":
+    if custom_data_dir:
+        data_dir = custom_data_dir
+    elif sys.platform == "win32":
         data_dir = os.path.join(os.environ["APPDATA"], app_name)
     else:
         data_dir = os.path.join(os.path.expanduser("~"), ".local", "share", app_name)
