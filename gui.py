@@ -5,6 +5,7 @@ import options
 import dependencies
 from PIL import Image, ImageTk
 import os
+import replays
 returncode = "error"
 
 # lose_screen has been moved to main.py using Pygame
@@ -46,6 +47,13 @@ def main_menu(root):
     def scores():
         scs.start(root)
 
+    def show_replays():
+        global returncode
+        replay_data = replays.start(root)
+        if replay_data:
+            returncode = ("replay", replay_data)
+            toplevel.destroy()
+
     # Use the globally loaded icon
     pil_icon = dependencies.get_global_icon_pil()
     if pil_icon:
@@ -67,6 +75,9 @@ def main_menu(root):
 
     publicScoresButton = ctk.CTkButton(toplevel, text="Public Leaderboard", command=lambda: scs.start_public(root), font=(dependencies.get_font_path(), 16))
     publicScoresButton.pack(pady=5)
+
+    replaysButton = ctk.CTkButton(toplevel, text="Replays", command=show_replays, font=(dependencies.get_font_path(), 16))
+    replaysButton.pack(pady=5)
     
     exitButton = ctk.CTkButton(toplevel, text="Exit", command=exit_game, font=(dependencies.get_font_path(), 16))
     exitButton.pack(pady=5)

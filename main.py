@@ -44,6 +44,7 @@ import namecheck
 import modloader
 import datetime
 import os
+import replays
 from typing import Optional
 
 paused = False  # initialize before use because of type checking
@@ -57,6 +58,12 @@ rotated_image = None
 rotated_rect = None
 game_state_for_mods = {}
 dying = False
+replaying = False
+current_replay_data = None
+current_recording = []
+frame_index = 0
+current_seed = 0
+replay_config = {}
 
 ###############################################
 ############ Flappy Bird-like Game ############
@@ -108,9 +115,37 @@ class Button:
 ################################################
 
 
-def restart():
+def restart(replay_data=None):
     global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT, dying
+    global replaying, current_replay_data, current_recording, frame_index, current_seed, replay_config, speed_increase
+    
     reloadSettings()
+    
+    if replay_data:
+        replaying = True
+        current_replay_data = replay_data
+        current_recording = []
+        frame_index = 0
+        current_seed = replay_data["seed"]
+        replay_config = replay_data["config"]
+        # Apply recorded config
+        scrollPixelsPerFrame = replay_config.get("scrollPixelsPerFrame", scrollPixelsPerFrame)
+        jumpVelocity = replay_config.get("jumpVelocity", jumpVelocity)
+        speed_increase = replay_config.get("speed_increase", speed_increase)
+    else:
+        replaying = False
+        current_replay_data = None
+        current_recording = []
+        frame_index = 0
+        current_seed = int(time.time() * 1000)
+        replay_config = {
+            "scrollPixelsPerFrame": scrollPixelsPerFrame,
+            "jumpVelocity": jumpVelocity,
+            "speed_increase": speed_increase
+        }
+    
+    random.seed(current_seed)
+    
     dying = False
     velocity = 0
     x = 100
@@ -263,6 +298,12 @@ def show_lose_screen():
         scores.start_public(root)
         return None
 
+    def on_save_replay():
+        if not replaying:
+            replays.save_replay(current_seed, current_recording, points, name, replay_config)
+            return "restart" # Restart after saving? Or just stay? Restart for now.
+        return None
+
     modloader.trigger_on_lose_screen(None)
 
     while True:
@@ -301,6 +342,12 @@ def show_lose_screen():
             Button("Leaderboard", WIDTH // 2 - btn_width // 2, start_y + 60, btn_width, btn_height, (52, 152, 219), (41, 128, 185), on_leaderboard),
             Button("Exit", WIDTH // 2 - btn_width // 2, start_y + 120, btn_width, btn_height, (231, 76, 60), (192, 57, 43), on_exit),
         ]
+        
+        if not replaying:
+            buttons.append(Button("Save Replay", WIDTH // 2 - btn_width // 2, start_y + 180, btn_width, btn_height, (155, 89, 182), (142, 68, 173), on_save_replay))
+            box_height = 460
+            box_rect.height = box_height
+            box_rect.y = HEIGHT // 2 - box_height // 2
 
         for btn in buttons:
             btn.draw(screen)
@@ -356,8 +403,13 @@ if rememberName:
 else:
     name = namecheck.getname(root)
 
-if gui.main_menu(root) == "exit":
+menu_res = gui.main_menu(root)
+if menu_res == "exit":
     sys.exit()
+
+initial_replay = None
+if isinstance(menu_res, tuple) and menu_res[0] == "replay":
+    initial_replay = menu_res[1]
     
 HEIGHT = 400
 WIDTH = 800
@@ -374,7 +426,7 @@ pygame.display.set_icon(image)
 ################### Main Loop ##################
 ################################################
 
-restart()
+restart(initial_replay)
 running = True
 just_resumed = False
 
@@ -386,6 +438,7 @@ while running:
         root.update_idletasks()
     except:
         pass
+    jump_this_frame = False
     size_changed = False
     for event in pygame.event.get():
         modloader.trigger_on_event(event)
@@ -399,9 +452,6 @@ while running:
             WIDTH, HEIGHT = event.x, event.y
             size_changed = True
         if event.type == pygame.KEYDOWN and not paused and not dying:
-            if event.key == pygame.K_SPACE:
-                modloader.trigger_on_jump()
-                velocity = -jumpVelocity
             if event.key == pygame.K_ESCAPE:
                 paused = True
                 dump_status("Paused", points, "paused")
@@ -414,24 +464,41 @@ while running:
                     rotated_image_on_resume = pygame.transform.rotate(image, angle)
                     rotated_rect_on_resume = rotated_image_on_resume.get_rect(center=image.get_rect(topleft=(x, y)).center)
                     if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image_on_resume, rotated_rect_on_resume):
-                        rotated_image, rotated_rect = rotated_image_on_resume, rotated_rect_on_resume
-                        appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
-                        scores.submit_score(name, points)
-                        reloadSettings()
-                        afterpause2 = show_lose_screen()
-                        if afterpause2 == "exit":
-                            running = False
-                        elif afterpause2 == "restart":
-                            restart()
-                            paused = False
+                        if replaying:
+                            # Replay ended prematurely via pause-resume? Just go back to menu
+                            menu_res = gui.main_menu(root)
+                            if menu_res == "exit":
+                                running = False
+                            else:
+                                rep = None
+                                if isinstance(menu_res, tuple) and menu_res[0] == "replay":
+                                    rep = menu_res[1]
+                                restart(rep)
+                                paused = False
+                        else:
+                            rotated_image, rotated_rect = rotated_image_on_resume, rotated_rect_on_resume
+                            appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
+                            scores.submit_score(name, points)
+                            reloadSettings()
+                            afterpause2 = show_lose_screen()
+                            if afterpause2 == "exit":
+                                running = False
+                            elif afterpause2 == "restart":
+                                restart()
+                                paused = False
                     else:
                         velocity = 0
                         clock.tick(maxfps)  # Reset clock to avoid large delta
                         just_resumed = True
                         paused = False
-        if event.type == pygame.MOUSEBUTTONDOWN and not paused and not dying:
-            modloader.trigger_on_jump()
-            velocity = -jumpVelocity
+            elif event.key == pygame.K_SPACE and not replaying:
+                jump_this_frame = True
+        if event.type == pygame.MOUSEBUTTONDOWN and not paused and not dying and not replaying:
+            jump_this_frame = True
+
+    if jump_this_frame:
+         modloader.trigger_on_jump()
+         velocity = -jumpVelocity
 
     if size_changed:
         current_w, current_h = pygame.display.get_surface().get_size()
@@ -439,16 +506,36 @@ while running:
             screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 
     if not paused:
-        if just_resumed:
-            delta = clock.tick(maxfps) / 1000
-            just_resumed = False
+        if replaying:
+            if frame_index < len(current_replay_data["frames"]):
+                frame = current_replay_data["frames"][frame_index]
+                delta = frame["delta"]
+                if frame["jump"]:
+                    modloader.trigger_on_jump()
+                    velocity = -jumpVelocity
+                frame_index += 1
+            else:
+                # Replay finished, just continue physics
+                delta = clock.tick(maxfps) / 1000
         else:
-            delta = clock.get_time() / 1000
-            velocity += 0.5 * delta * 60
+            if just_resumed:
+                delta = clock.tick(maxfps) / 1000
+                just_resumed = False
+            else:
+                delta = clock.get_time() / 1000
+            
+            # Record this frame if not replaying and not dying
             if not dying:
-                scroll -= scrollPixelsPerFrame * delta * 60
-            y += velocity * delta * 60
-            clock.tick(maxfps)
+                current_recording.append({
+                    "delta": delta,
+                    "jump": jump_this_frame
+                })
+
+        velocity += 0.5 * delta * 60
+        if not dying:
+            scroll -= scrollPixelsPerFrame * delta * 60
+        y += velocity * delta * 60
+        clock.tick(maxfps)
 
         if not dying:
             if (-scroll // PIPE_SPACING) < 0:
@@ -523,16 +610,28 @@ while running:
         else:
             # When dying, wait for potato to fall off screen
             if y > HEIGHT + 100:
-                paused = True
-                appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
-                scores.submit_score(name, points)
-                reloadSettings()
-                afterpause = show_lose_screen()
-                if afterpause == "exit":
-                    running = False
-                elif afterpause == "restart":
-                    restart()
-                    paused = False
+                if replaying:
+                    # Replay ended (either finished or crashed)
+                    menu_res = gui.main_menu(root)
+                    if menu_res == "exit":
+                        running = False
+                    else:
+                        rep = None
+                        if isinstance(menu_res, tuple) and menu_res[0] == "replay":
+                            rep = menu_res[1]
+                        restart(rep)
+                        paused = False
+                else:
+                    paused = True
+                    appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
+                    scores.submit_score(name, points)
+                    reloadSettings()
+                    afterpause = show_lose_screen()
+                    if afterpause == "exit":
+                        running = False
+                    elif afterpause == "restart":
+                        restart()
+                        paused = False
                     
         pygame.display.update()
 
