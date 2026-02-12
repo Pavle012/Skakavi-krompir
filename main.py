@@ -53,6 +53,10 @@ points = 0      # default points (restart() will overwrite)
 velocity = 0    # etc.
 scroll = 500
 speed_increase = 3
+rotated_image = None
+rotated_rect = None
+game_state_for_mods = {}
+dying = False
 
 ###############################################
 ############ Flappy Bird-like Game ############
@@ -73,14 +77,41 @@ class pipe:
         else:
             pygame.draw.rect(screen, pipeColor, (self.x, self.y, 50, HEIGHT - self.y))
 
+class Button:
+    def __init__(self, text, x, y, width, height, color, hover_color, action):
+        self.text = text
+        self.rect = pygame.Rect(x, y, width, height)
+        self.color = color
+        self.hover_color = hover_color
+        self.action = action
+
+    def draw(self, screen):
+        mouse_pos = pygame.mouse.get_pos()
+        if self.rect.collidepoint(mouse_pos):
+            pygame.draw.rect(screen, self.hover_color, self.rect, border_radius=10)
+        else:
+            pygame.draw.rect(screen, self.color, self.rect, border_radius=10)
+        
+        btn_font = pygame.font.Font(dependencies.get_font_path(), 24)
+        text_surf = btn_font.render(self.text, True, (255, 255, 255))
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        screen.blit(text_surf, text_rect)
+
+    def is_clicked(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                return self.action()
+        return None
+
 ################################################
 ################### Functions ##################
 ################################################
 
 
 def restart():
-    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT
+    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT, dying
     reloadSettings()
+    dying = False
     velocity = 0
     x = 100
     y = (HEIGHT // 2)
@@ -153,7 +184,23 @@ def spawnPipe():
     global pipesPos, scroll, pipeColor, screen
     for px, py, is_top in pipesPos:
         realX = px + scroll
+        # Optimization: Only draw pipes that are at least partially on screen
+        if realX < -100 or realX > WIDTH + 100:
+            continue
         pipe(realX, py, is_top).draw(screen)
+
+def render_game():
+    global screen, WIDTH, HEIGHT, rotated_image, rotated_rect, points, font, game_state_for_mods
+    screen.fill((66, 183, 237))
+    spawnPipe()
+    if rotated_image and rotated_rect:
+        screen.blit(rotated_image, rotated_rect.topleft)
+    
+    points_text = font.render(f"Points: {points}", True, (255, 255, 255))
+    screen.blit(points_text, (WIDTH - points_text.get_width() - 10, 10))
+    
+    if game_state_for_mods:
+        modloader.trigger_on_draw(screen, game_state_for_mods)
 
 def getSettings(key: str) -> Optional[str]:
     settings = {}
@@ -199,6 +246,98 @@ def appendScore(score):
     scores_path = os.path.join(dependencies.get_user_data_dir(), "scores.txt")
     with open(scores_path, "a") as f:
         f.write(f"{score}\n")
+
+def show_lose_screen():
+    global running, paused, points, name, WIDTH, HEIGHT, screen, rotated_image, rotated_rect
+    
+    lose_font = pygame.font.Font(dependencies.get_font_path(), 64)
+    info_font = pygame.font.Font(dependencies.get_font_path(), 32)
+    
+    def on_restart():
+        return "restart"
+    
+    def on_exit():
+        return "exit"
+    
+    def on_leaderboard():
+        scores.start_public(root)
+        return None
+
+    modloader.trigger_on_lose_screen(None)
+
+    while True:
+        # 1. Draw the game state as the background
+        render_game()
+        
+        # 2. Draw a semi-transparent full-screen dim
+        dim_overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        dim_overlay.fill((0, 0, 0, 120))
+        screen.blit(dim_overlay, (0, 0))
+        
+        # 3. Draw a centered box for the UI
+        box_width = 450
+        box_height = 400
+        box_rect = pygame.Rect(WIDTH // 2 - box_width // 2, HEIGHT // 2 - box_height // 2, box_width, box_height)
+        
+        # Rounded box with border
+        pygame.draw.rect(screen, (30, 30, 40), box_rect, border_radius=20)
+        pygame.draw.rect(screen, (255, 255, 255), box_rect, width=2, border_radius=20)
+        
+        lose_text = lose_font.render("YOU LOST!", True, (255, 80, 80))
+        lose_rect = lose_text.get_rect(center=(WIDTH // 2, box_rect.top + 60))
+        screen.blit(lose_text, lose_rect)
+        
+        score_info = info_font.render(f"Final Score: {points}", True, (255, 255, 255))
+        score_rect = score_info.get_rect(center=(WIDTH // 2, box_rect.top + 130))
+        screen.blit(score_info, score_rect)
+        
+        # Buttons shifted relative to the box
+        btn_width = 300
+        btn_height = 50
+        start_y = box_rect.top + 180
+        
+        buttons = [
+            Button("Restart", WIDTH // 2 - btn_width // 2, start_y, btn_width, btn_height, (46, 204, 113), (39, 174, 96), on_restart),
+            Button("Leaderboard", WIDTH // 2 - btn_width // 2, start_y + 60, btn_width, btn_height, (52, 152, 219), (41, 128, 185), on_leaderboard),
+            Button("Exit", WIDTH // 2 - btn_width // 2, start_y + 120, btn_width, btn_height, (231, 76, 60), (192, 57, 43), on_exit),
+        ]
+
+        for btn in buttons:
+            btn.draw(screen)
+            
+        pygame.display.update()
+        
+        size_changed = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return "exit"
+            if event.type == pygame.VIDEORESIZE:
+                WIDTH, HEIGHT = event.w, event.h
+                size_changed = True
+            elif event.type == pygame.WINDOWRESIZED:
+                WIDTH, HEIGHT = event.x, event.y
+                size_changed = True
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    return "restart"
+                if event.key == pygame.K_ESCAPE:
+                    return "exit"
+            
+            for btn in buttons:
+                res = btn.is_clicked(event)
+                if res:
+                    return res
+        
+        if size_changed:
+            current_w, current_h = pygame.display.get_surface().get_size()
+            if WIDTH != current_w or HEIGHT != current_h:
+                screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+        
+        try:
+            root.update()
+        except:
+            pass
+        clock.tick(60)
 
 ################################################
 ##################### Init #####################
@@ -247,15 +386,19 @@ while running:
         root.update_idletasks()
     except:
         pass
+    size_changed = False
     for event in pygame.event.get():
         modloader.trigger_on_event(event)
         if event.type == pygame.QUIT:
             modloader.trigger_on_quit()
             running = False
         if event.type == pygame.VIDEORESIZE:
-            WIDTH, HEIGHT = event.size
-            screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-        if event.type == pygame.KEYDOWN and not paused:
+            WIDTH, HEIGHT = event.w, event.h
+            size_changed = True
+        elif event.type == pygame.WINDOWRESIZED:
+            WIDTH, HEIGHT = event.x, event.y
+            size_changed = True
+        if event.type == pygame.KEYDOWN and not paused and not dying:
             if event.key == pygame.K_SPACE:
                 modloader.trigger_on_jump()
                 velocity = -jumpVelocity
@@ -271,11 +414,11 @@ while running:
                     rotated_image_on_resume = pygame.transform.rotate(image, angle)
                     rotated_rect_on_resume = rotated_image_on_resume.get_rect(center=image.get_rect(topleft=(x, y)).center)
                     if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image_on_resume, rotated_rect_on_resume):
+                        rotated_image, rotated_rect = rotated_image_on_resume, rotated_rect_on_resume
                         appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
                         scores.submit_score(name, points)
                         reloadSettings()
-                        dump_status("Game Over", points, "game_over")
-                        afterpause2 = gui.lose_screen(root)
+                        afterpause2 = show_lose_screen()
                         if afterpause2 == "exit":
                             running = False
                         elif afterpause2 == "restart":
@@ -286,110 +429,111 @@ while running:
                         clock.tick(maxfps)  # Reset clock to avoid large delta
                         just_resumed = True
                         paused = False
-                        dump_status("Playing", points, "playing")
-        if event.type == pygame.MOUSEBUTTONDOWN and not paused:
+        if event.type == pygame.MOUSEBUTTONDOWN and not paused and not dying:
             modloader.trigger_on_jump()
             velocity = -jumpVelocity
 
+    if size_changed:
+        current_w, current_h = pygame.display.get_surface().get_size()
+        if WIDTH != current_w or HEIGHT != current_h:
+            screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+
     if not paused:
-        screen.fill((66, 183, 237))
-
-        spawnPipe()
-        spawnPipe()
-        if (-scroll // PIPE_SPACING) < 0:
-            new_points = 0
-        else:
-            new_points = int(-scroll // PIPE_SPACING + 1)
-        
-        if new_points > points:
-            modloader.trigger_on_score(new_points)
-        points = new_points
-            
-        text_str = f"Points: {points}"
-        text = font.render(text_str, True, (255, 255, 255))
-
         if just_resumed:
             delta = clock.tick(maxfps) / 1000
             just_resumed = False
         else:
             delta = clock.get_time() / 1000
             velocity += 0.5 * delta * 60
-            scroll -= scrollPixelsPerFrame * delta * 60
+            if not dying:
+                scroll -= scrollPixelsPerFrame * delta * 60
             y += velocity * delta * 60
             clock.tick(maxfps)
 
-        # make the speed go faster over time
-        if points % 10 == 0 and points != 0:
-            scrollPixelsPerFrame += speed_increase * 0.01 * delta * 60
+        if not dying:
+            if (-scroll // PIPE_SPACING) < 0:
+                new_points = 0
+            else:
+                new_points = int(-scroll // PIPE_SPACING + 1)
+            
+            if new_points > points:
+                modloader.trigger_on_score(new_points)
+            points = new_points
+                
+            # make the speed go faster over time
+            if points % 10 == 0 and points != 0:
+                scrollPixelsPerFrame += speed_increase * 0.01 * delta * 60
         
         # --- Rotation and Drawing ---
-        # Calculate rotation angle based on vertical velocity.
-        angle = max(min(velocity * -2.5, 30), -90)
-        # Rotate the master image.
+        if dying:
+            # Spinner rotation on death
+            angle = (pygame.time.get_ticks() // 5) % 360
+        else:
+            angle = max(min(velocity * -2.5, 30), -90)
+            
         rotated_image = pygame.transform.rotate(image, angle)
-        # Create a new rect for the rotated image, ensuring its center matches the player's logical position.
         rotated_rect = rotated_image.get_rect(center=image.get_rect(topleft=(x, y)).center)
 
-        # Update mod-accessible game state
-        game_state_for_mods = {
-            "player_pos": (x, y),
-            "player_velocity": velocity,
-            "player_rect": rotated_rect,
-            "player_surface": rotated_image,
-            "pipes": pipesPos,
-            "scroll": scroll,
-            "width": WIDTH,
-            "height": HEIGHT,
-            "points": points,
-            "pipe_spacing": PIPE_SPACING,
-            "pipe_color": pipeColor
-        }
-        modloader.update_game_state(game_state_for_mods)
+        # Update mod-accessible game state if not dying
+        if not dying:
+            game_state_for_mods = {
+                "player_pos": (x, y),
+                "player_velocity": velocity,
+                "player_rect": rotated_rect,
+                "player_surface": rotated_image,
+                "pipes": pipesPos,
+                "scroll": scroll,
+                "width": WIDTH,
+                "height": HEIGHT,
+                "points": points,
+                "pipe_spacing": PIPE_SPACING,
+                "pipe_color": pipeColor
+            }
+            modloader.update_game_state(game_state_for_mods)
 
-        # Trigger mod hooks
-        modloader.trigger_on_update(delta)
-        
-        # Pull state back from mods
-        new_state = modloader.get_game_state()
-        if new_state:
-            # Safely update local variables if they exist in the pushed state
-            # We trust mods to provide correct types, but basic safety could be added.
-            if "player_pos" in new_state and isinstance(new_state["player_pos"], (tuple, list)) and len(new_state["player_pos"]) == 2:
-                x, y = new_state["player_pos"]
-            if "player_velocity" in new_state:
-                velocity = new_state["player_velocity"]
-            if "scroll" in new_state:
-                scroll = new_state["scroll"]
-            if "points" in new_state:
-                points = new_state["points"]
-            if "pipe_color" in new_state:
-                pipeColor = new_state["pipe_color"]
+            # Trigger mod hooks
+            modloader.trigger_on_update(delta)
+            
+            # Pull state back from mods
+            new_state = modloader.get_game_state()
+            if new_state:
+                if "player_pos" in new_state and isinstance(new_state["player_pos"], (tuple, list)) and len(new_state["player_pos"]) == 2:
+                    x, y = new_state["player_pos"]
+                if "player_velocity" in new_state:
+                    velocity = new_state["player_velocity"]
+                if "scroll" in new_state:
+                    scroll = new_state["scroll"]
+                if "points" in new_state:
+                    points = new_state["points"]
+                if "pipe_color" in new_state:
+                    pipeColor = new_state["pipe_color"]
 
-        screen.blit(rotated_image, rotated_rect.topleft)
-        screen.blit(text, (WIDTH - text.get_width() - 10, 10))
-        
-        modloader.trigger_on_draw(screen, game_state_for_mods)
+        render_game()
 
-        # --- Collision Check ---
-        # Only check collision if not cancelled by mods (God Mode)
-        collision_detected = y > HEIGHT or y < 0 or isPotatoColliding(rotated_image, rotated_rect)
-        if collision_detected:
-            if not modloader.trigger_on_collision():
-                 # Collision was cancelled by a mod
-                 collision_detected = False
-        
-        if collision_detected:
-            paused = True
-            dump_status("Game Over", points, "game_over")
-            appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
-            scores.submit_score(name, points)
-            reloadSettings()
-            afterpause = gui.lose_screen(root)
-            if afterpause == "exit":
-                running = False
-            elif afterpause == "restart":
-                restart()
-                paused = False
+        # --- Collision and State Transitions ---
+        if not dying:
+            collision_detected = y > HEIGHT or y < 0 or isPotatoColliding(rotated_image, rotated_rect)
+            if collision_detected:
+                if not modloader.trigger_on_collision():
+                     collision_detected = False
+            
+            if collision_detected:
+                dying = True
+                velocity = -8 # Small jump up on death
+        else:
+            # When dying, wait for potato to fall off screen
+            if y > HEIGHT + 100:
+                paused = True
+                appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
+                scores.submit_score(name, points)
+                reloadSettings()
+                afterpause = show_lose_screen()
+                if afterpause == "exit":
+                    running = False
+                elif afterpause == "restart":
+                    restart()
+                    paused = False
+                    
         pygame.display.update()
 
 pygame.quit()
