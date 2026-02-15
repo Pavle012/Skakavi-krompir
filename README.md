@@ -1,13 +1,14 @@
 # Skakavi Krompir
 
-<div align="right">
+A Flappy Bird-like game
 
-[![Build alpha](https://github.com/Pavle012/Skakavi-krompir/actions/workflows/buildalpha.yml/badge.svg)](https://github.com/Pavle012/Skakavi-krompir/actions/workflows/buildalpha.yml)
-
-</div>
-
-
-### A Flappy Bird-like game
+<!-- markdownlint-disable MD033 -->
+<p align="right">
+  <a href="https://github.com/Pavle012/Skakavi-krompir/actions/workflows/buildalpha.yml">
+    <img src="https://github.com/Pavle012/Skakavi-krompir/actions/workflows/buildalpha.yml/badge.svg" alt="Build alpha">
+  </a>
+</p>
+<!-- markdownlint-enable MD033 -->
 
 ## 📦 Dependencies
 
@@ -18,4 +19,4 @@ If `pygame`, `pillow` and `customtkinter` aren't already installed, the script w
 
 To download the latest stable version, go to the [Releases](https://github.com/Pavle012/Skakavi-krompir/releases) page and download the latest release.
 
-Want to download the latest alpha version? [Click here](https://github.com/Pavle012/Skakavi-krompir/wiki/How-to-download-the-latest-alpha)
+Want to download the latest alpha version? [How to download the latest alpha](https://github.com/Pavle012/Skakavi-krompir/wiki/How-to-download-the-latest-alpha)
