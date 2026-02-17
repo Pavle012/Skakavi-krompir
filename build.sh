@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source .venv/bin/activate
+
 # 1. Install dependencies (if needed)
 pip install pygame nuitka requests Pillow customtkinter
 
