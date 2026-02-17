@@ -45,6 +45,7 @@ import modloader
 import datetime
 import os
 import replays
+import powerups
 from typing import Optional
 
 paused = False  # initialize before use because of type checking
@@ -64,6 +65,7 @@ current_recording = []
 frame_index = 0
 current_seed = 0
 replay_config = {}
+powerup_manager = None
 
 ###############################################
 ############ Flappy Bird-like Game ############
@@ -114,10 +116,32 @@ class Button:
 ################### Functions ##################
 ################################################
 
+class FloatingText:
+    def __init__(self, text, x, y, color=(255, 255, 255)):
+        self.text = text
+        self.x = x
+        self.y = y
+        self.color = color
+        self.timer = 60 # 1 second at 60fps
+        self.font = pygame.font.Font(dependencies.get_font_path(), 24)
+        
+    def update(self):
+        self.y -= 1 # Float up
+        self.timer -= 1
+        return self.timer > 0
+        
+    def draw(self, screen):
+        # simple fade out could be added but let's stick to simple timer
+        surf = self.font.render(self.text, True, self.color)
+        screen.blit(surf, (self.x, self.y))
+
+floating_texts = []
+
+
 
 def restart(replay_data=None):
     global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT, dying
-    global replaying, current_replay_data, current_recording, frame_index, current_seed, replay_config, speed_increase
+    global replaying, current_replay_data, current_recording, frame_index, current_seed, replay_config, speed_increase, powerup_manager
     
     reloadSettings()
     
@@ -161,11 +185,31 @@ def restart(replay_data=None):
     PIPE_SPACING = 300
     GAP_SIZE = 300
     pipesPos = []
+    powerup_manager.reset()
     pipeColor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
     for i in range(pipeNumber):
         randomY = random.randint(-100, 100)
         pipesPos.append((100 + (i * PIPE_SPACING), (HEIGHT/2) + GAP_SIZE + -750 + randomY, True))
         pipesPos.append((100 + (i * PIPE_SPACING), (HEIGHT/2) + GAP_SIZE + -150 + randomY, False))
+        
+        # Chance to spawn powerup between pipes
+        # Middle Y is roughly randomY + (HEIGHT/2) + GAP_SIZE - 450? 
+        # Calculating gap center:
+        # Top pipe ends at: (HEIGHT/2) + GAP_SIZE - 750 + randomY + 300 = HEIGHT/2 + GAP_SIZE - 450 + randomY
+        # Bottom pipe starts at: (HEIGHT/2) + GAP_SIZE - 150 + randomY
+        # Gap center = (Top_end + Bottom_start) / 2
+        # Top_end = (HEIGHT/2) + GAP_SIZE + randomY - 450
+        # Bottom_start = (HEIGHT/2) + GAP_SIZE + randomY - 150
+        # Average = (HEIGHT/2) + GAP_SIZE + randomY - 300
+        gap_center_y = (HEIGHT/2) + GAP_SIZE + randomY - 300
+        
+        # X position: in the middle of the gap between this pipe and the next?
+        # Or just at the pipe's X? If at pipe's X, it's inside the gap.
+        # Pipe X is 100 + (i * PIPE_SPACING)
+        # 30% chance to spawn a powerup
+        if random.random() < 0.3:
+            powerup_x = 100 + (i * PIPE_SPACING) + 10 
+            powerup_manager.spawn_powerup(powerup_x, gap_center_y)
     
     # Reload the image in case it was changed
     image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
@@ -174,7 +218,12 @@ def restart(replay_data=None):
 
 
 def isPotatoColliding(potato_surface, potato_rect):
-    global pipesPos, scroll
+    global pipesPos, scroll, powerup_manager
+    
+    # Invincibility check
+    if powerup_manager.is_effect_active("invincibility"):
+        return False
+        
     # Create a mask from the rotated potato surface.
     potato_mask = pygame.mask.from_surface(potato_surface)
 
@@ -228,9 +277,20 @@ def render_game():
     global screen, WIDTH, HEIGHT, rotated_image, rotated_rect, points, font, game_state_for_mods
     screen.fill((66, 183, 237))
     spawnPipe()
+    powerup_manager.draw(screen, scroll)
     if rotated_image and rotated_rect:
         screen.blit(rotated_image, rotated_rect.topleft)
-    
+        
+    # Draw invincibility shield
+    if powerup_manager.is_effect_active("invincibility"):
+        # Pulsing shield
+        pulse = (pygame.time.get_ticks() // 100) % 5
+        pygame.draw.circle(screen, (0, 255, 255), rotated_rect.center, 30 + pulse, 3)
+        
+    # Draw floating texts
+    for ft in floating_texts:
+        ft.draw(screen)
+
     points_text = font.render(f"Points: {points}", True, (255, 255, 255))
     screen.blit(points_text, (WIDTH - points_text.get_width() - 10, 10))
     
@@ -422,6 +482,8 @@ image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
 image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 pygame.display.set_icon(image)
 
+powerup_manager = powerups.PowerupManager(dependencies.get_assets_dir())
+
 ################################################
 ################### Main Loop ##################
 ################################################
@@ -533,7 +595,8 @@ while running:
 
         velocity += 0.5 * delta * 60
         if not dying:
-            scroll -= scrollPixelsPerFrame * delta * 60
+            pass # Powerup logic moved to after rotation to ensure rotated_rect is available
+            
         y += velocity * delta * 60
         clock.tick(maxfps)
 
@@ -560,6 +623,50 @@ while running:
             
         rotated_image = pygame.transform.rotate(image, angle)
         rotated_rect = rotated_image.get_rect(center=image.get_rect(topleft=(x, y)).center)
+
+        if not dying:
+            # Powerup updates and effects
+            # Now rotated_rect is valid for this frame
+            collected_effect, expired_effects = powerup_manager.update(delta, scroll, rotated_rect)
+            
+            if collected_effect:
+                # Handle instant effects
+                p_text = ""
+                p_color = (255, 255, 255)
+                
+                if collected_effect["type"] == "score":
+                    val = collected_effect["value"]
+                    points += val
+                    modloader.trigger_on_score(points)
+                    p_text = f"+{val}"
+                    p_color = (255, 215, 0)
+                elif collected_effect["type"] == "invincibility":
+                    p_text = "SHIELD!"
+                    p_color = (0, 255, 255)
+                elif collected_effect["type"] == "speed":
+                    val = collected_effect["value"]
+                    if val > 1:
+                        p_text = "SPEED UP!"
+                        p_color = (255, 50, 50)
+                    else:
+                        p_text = "SLOW MO!"
+                        p_color = (100, 100, 255)
+                        
+                if p_text:
+                    floating_texts.append(FloatingText(p_text, rotated_rect.centerx, rotated_rect.top - 20, p_color))
+            
+            # Remove expired floating texts
+            floating_texts = [ft for ft in floating_texts if ft.update()]
+            
+            # Speed boost / Slow motion
+            speed_multiplier = 1.0
+            if powerup_manager.is_effect_active("speed"):
+                 speed_multiplier = powerup_manager.get_effect_value("speed", 1.0)
+
+            # Apply speed effects
+            base_scroll_change = scrollPixelsPerFrame * delta * 60 * speed_multiplier
+            
+            scroll -= base_scroll_change
 
         # Update mod-accessible game state if not dying
         if not dying:
