@@ -3,7 +3,7 @@ import subprocess
 import sys
 import os
 import shutil
-from PIL import Image, ImageTk # Added ImageTk
+from PIL import Image
 
 
 global_icon_pil_image = None # Only global PIL Image
