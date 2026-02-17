@@ -317,7 +317,7 @@ def show_lose_screen():
         
         # 3. Draw a centered box for the UI
         box_width = 450
-        box_height = 400
+        box_height = 450
         box_rect = pygame.Rect(WIDTH // 2 - box_width // 2, HEIGHT // 2 - box_height // 2, box_width, box_height)
         
         # Rounded box with border
@@ -345,7 +345,7 @@ def show_lose_screen():
         
         if not replaying:
             buttons.append(Button("Save Replay", WIDTH // 2 - btn_width // 2, start_y + 180, btn_width, btn_height, (155, 89, 182), (142, 68, 173), on_save_replay))
-            box_height = 460
+            box_height = 520
             box_rect.height = box_height
             box_rect.y = HEIGHT // 2 - box_height // 2
 
@@ -411,7 +411,7 @@ initial_replay = None
 if isinstance(menu_res, tuple) and menu_res[0] == "replay":
     initial_replay = menu_res[1]
     
-HEIGHT = 400
+HEIGHT = 600
 WIDTH = 800
 pygame.init()
 modloader.load_mods()
