@@ -45,6 +45,7 @@ import modloader
 import datetime
 import os
 import replays
+import particles
 import powerups
 from typing import Optional
 
@@ -142,8 +143,11 @@ floating_texts = []
 def restart(replay_data=None):
     global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT, dying
     global replaying, current_replay_data, current_recording, frame_index, current_seed, replay_config, speed_increase, powerup_manager
+    global particle_manager
     
     reloadSettings()
+    
+    particle_manager = particles.ParticleManager()
     
     if replay_data:
         replaying = True
@@ -277,6 +281,7 @@ def render_game():
     global screen, WIDTH, HEIGHT, rotated_image, rotated_rect, points, font, game_state_for_mods
     screen.fill((66, 183, 237))
     spawnPipe()
+    particle_manager.draw(screen)
     powerup_manager.draw(screen, scroll)
     if rotated_image and rotated_rect:
         screen.blit(rotated_image, rotated_rect.topleft)
@@ -561,6 +566,9 @@ while running:
     if jump_this_frame:
          modloader.trigger_on_jump()
          velocity = -jumpVelocity
+         # Create jump particles at the bottom center of the player
+         # Player size is approx 78x58. Center is x + 39. Bottom is y + 58.
+         particle_manager.create_jump_effect(x + 39, y + 58)
 
     if size_changed:
         current_w, current_h = pygame.display.get_surface().get_size()
@@ -575,6 +583,7 @@ while running:
                 if frame["jump"]:
                     modloader.trigger_on_jump()
                     velocity = -jumpVelocity
+                    particle_manager.create_jump_effect(x + 39, y + 58)
                 frame_index += 1
             else:
                 # Replay finished, just continue physics
@@ -598,6 +607,7 @@ while running:
             pass # Powerup logic moved to after rotation to ensure rotated_rect is available
             
         y += velocity * delta * 60
+        particle_manager.update(delta)
         clock.tick(maxfps)
 
         if not dying:
@@ -714,6 +724,7 @@ while running:
             if collision_detected:
                 dying = True
                 velocity = -8 # Small jump up on death
+                particle_manager.create_collision_effect(x + 39, y + 29) # Center of player
         else:
             # When dying, wait for potato to fall off screen
             if y > HEIGHT + 100:
