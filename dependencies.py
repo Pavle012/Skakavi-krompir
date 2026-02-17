@@ -68,6 +68,10 @@ def resource_path(relative_path):
         
     return os.path.join(base_path, relative_path)
 
+def get_assets_dir():
+    """Get the absolute path to the assets directory."""
+    return resource_path("assets")
+
 def get_user_data_dir():
     """ Get path to user data directory, create it if it doesn't exist """
     app_name = "SkakaviKrompir"

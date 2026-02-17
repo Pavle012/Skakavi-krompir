@@ -1,0 +1,67 @@
+[
+    {
+        "id": "score_bonus_small",
+        "name": "Small Score Bonus",
+        "color": [
+            255,
+            215,
+            0
+        ],
+        "rarity": 50,
+        "effect": "score",
+        "value": 5,
+        "duration": 0
+    },
+    {
+        "id": "score_bonus_large",
+        "name": "Large Score Bonus",
+        "color": [
+            255,
+            140,
+            0
+        ],
+        "rarity": 20,
+        "effect": "score",
+        "value": 25,
+        "duration": 0
+    },
+    {
+        "id": "invincibility",
+        "name": "Invincibility",
+        "color": [
+            0,
+            255,
+            255
+        ],
+        "rarity": 10,
+        "effect": "invincibility",
+        "value": 0,
+        "duration": 8
+    },
+    {
+        "id": "speed_boost",
+        "name": "Speed Boost",
+        "color": [
+            255,
+            0,
+            0
+        ],
+        "rarity": 15,
+        "effect": "speed",
+        "value": 1.7,
+        "duration": 5
+    },
+    {
+        "id": "slow_motion",
+        "name": "Slow Motion",
+        "color": [
+            0,
+            0,
+            255
+        ],
+        "rarity": 15,
+        "effect": "speed",
+        "value": 0.5,
+        "duration": 5
+    }
+]
