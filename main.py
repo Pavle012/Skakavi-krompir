@@ -347,75 +347,50 @@ def appendScore(score):
     with open(scores_path, "a") as f:
         f.write(f"{score}\n")
 
-def show_lose_screen():
-    global running, paused, points, name, WIDTH, HEIGHT, screen, rotated_image, rotated_rect
+def run_ui_overlay(title, info_lines, button_defs, title_color=(255, 255, 255), hook_func=None, on_esc=None, on_enter=None):
+    global WIDTH, HEIGHT, screen, clock, root
     
-    lose_font = pygame.font.Font(dependencies.get_font_path(), 64)
+    if hook_func:
+        hook_func(None)
+        
+    title_font = pygame.font.Font(dependencies.get_font_path(), 64)
     info_font = pygame.font.Font(dependencies.get_font_path(), 32)
-    
-    def on_restart():
-        return "restart"
-    
-    def on_exit():
-        return "exit"
-    
-    def on_leaderboard():
-        scores.start_public(root)
-        return None
-
-    def on_save_replay():
-        if not replaying:
-            replays.save_replay(current_seed, current_recording, points, name, replay_config)
-            return "restart" # Restart after saving? Or just stay? Restart for now.
-        return None
-
-    modloader.trigger_on_lose_screen(None)
 
     while True:
-        # 1. Draw the game state as the background
         render_game()
         
-        # 2. Draw a semi-transparent full-screen dim
         dim_overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        dim_overlay.fill((0, 0, 0, 120))
+        dim_overlay.fill((0, 0, 0, 150))
         screen.blit(dim_overlay, (0, 0))
         
-        # 3. Draw a centered box for the UI
         box_width = 450
-        box_height = 450
+        box_height = 120 + len(info_lines) * 40 + len(button_defs) * 55 + 20
         box_rect = pygame.Rect(WIDTH // 2 - box_width // 2, HEIGHT // 2 - box_height // 2, box_width, box_height)
         
-        # Rounded box with border
         pygame.draw.rect(screen, (30, 30, 40), box_rect, border_radius=20)
         pygame.draw.rect(screen, (255, 255, 255), box_rect, width=2, border_radius=20)
         
-        lose_text = lose_font.render("YOU LOST!", True, (255, 80, 80))
-        lose_rect = lose_text.get_rect(center=(WIDTH // 2, box_rect.top + 60))
-        screen.blit(lose_text, lose_rect)
+        title_surf = title_font.render(title, True, title_color)
+        title_rect = title_surf.get_rect(center=(WIDTH // 2, box_rect.top + 60))
+        screen.blit(title_surf, title_rect)
         
-        score_info = info_font.render(f"Final Score: {points}", True, (255, 255, 255))
-        score_rect = score_info.get_rect(center=(WIDTH // 2, box_rect.top + 130))
-        screen.blit(score_info, score_rect)
+        curr_y = box_rect.top + 120
+        for line in info_lines:
+            info_surf = info_font.render(line, True, (255, 255, 255))
+            info_rect = info_surf.get_rect(center=(WIDTH // 2, curr_y))
+            screen.blit(info_surf, info_rect)
+            curr_y += 40
+            
+        btn_width = 320
+        btn_height = 45
+        if info_lines: curr_y += 10
         
-        # Buttons shifted relative to the box
-        btn_width = 300
-        btn_height = 50
-        start_y = box_rect.top + 180
-        
-        buttons = [
-            Button("Restart", WIDTH // 2 - btn_width // 2, start_y, btn_width, btn_height, (46, 204, 113), (39, 174, 96), on_restart),
-            Button("Leaderboard", WIDTH // 2 - btn_width // 2, start_y + 60, btn_width, btn_height, (52, 152, 219), (41, 128, 185), on_leaderboard),
-            Button("Exit", WIDTH // 2 - btn_width // 2, start_y + 120, btn_width, btn_height, (231, 76, 60), (192, 57, 43), on_exit),
-        ]
-        
-        if not replaying:
-            buttons.append(Button("Save Replay", WIDTH // 2 - btn_width // 2, start_y + 180, btn_width, btn_height, (155, 89, 182), (142, 68, 173), on_save_replay))
-            box_height = 520
-            box_rect.height = box_height
-            box_rect.y = HEIGHT // 2 - box_height // 2
-
-        for btn in buttons:
+        buttons = []
+        for b_def in button_defs:
+            btn = Button(b_def[0], WIDTH // 2 - btn_width // 2, curr_y, btn_width, btn_height, b_def[1], b_def[2], b_def[3])
             btn.draw(screen)
+            buttons.append(btn)
+            curr_y += 55
             
         pygame.display.update()
         
@@ -430,10 +405,12 @@ def show_lose_screen():
                 WIDTH, HEIGHT = event.x, event.y
                 size_changed = True
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    return "restart"
-                if event.key == pygame.K_ESCAPE:
-                    return "exit"
+                if event.key == pygame.K_ESCAPE and on_esc:
+                    res = on_esc()
+                    if res: return res
+                if event.key == pygame.K_RETURN and on_enter:
+                    res = on_enter()
+                    if res: return res
             
             for btn in buttons:
                 res = btn.is_clicked(event)
@@ -450,6 +427,77 @@ def show_lose_screen():
         except:
             pass
         clock.tick(60)
+
+def show_lose_screen():
+    global points, name, replaying, current_seed, current_recording, replay_config
+    
+    def on_restart(): return "restart"
+    def on_exit(): return "exit"
+    def on_leaderboard():
+        scores.start_public(root)
+        return None
+    def on_save_replay():
+        replays.save_replay(current_seed, current_recording, points, name, replay_config)
+        return "restart"
+
+    button_defs = [
+        ("Restart", (46, 204, 113), (39, 174, 96), on_restart),
+        ("Leaderboard", (52, 152, 219), (41, 128, 185), on_leaderboard),
+        ("Exit", (231, 76, 60), (192, 57, 43), on_exit),
+    ]
+    
+    if not replaying:
+        button_defs.append(("Save Replay", (155, 89, 182), (142, 68, 173), on_save_replay))
+
+    return run_ui_overlay(
+        title="YOU LOST!",
+        info_lines=[f"Final Score: {points}"],
+        button_defs=button_defs,
+        title_color=(255, 80, 80),
+        hook_func=modloader.trigger_on_lose_screen,
+        on_esc=on_exit,
+        on_enter=on_restart
+    )
+
+def show_pause_screen():
+    def on_resume(): return "resume"
+    def on_exit(): return "exit"
+    def on_scores():
+        scores.start(root)
+        return None
+    def on_leaderboard():
+        scores.start_public(root)
+        return None
+    def on_settings():
+        import options
+        options.start(root)
+        return None
+    def on_update():
+        import updater
+        import sys
+        game_executable_path = sys.argv[0]
+        updater.start_update(game_executable_path)
+        return "exit"
+
+    button_defs = [
+        ("Resume", (46, 204, 113), (39, 174, 96), on_resume),
+        ("Scores", (52, 152, 219), (41, 128, 185), on_scores),
+        ("Leaderboard", (52, 152, 219), (41, 128, 185), on_leaderboard),
+        ("Settings", (155, 89, 182), (142, 68, 173), on_settings),
+        ("Update", (230, 126, 34), (211, 84, 0), on_update),
+        ("Exit", (231, 76, 60), (192, 57, 43), on_exit),
+    ]
+
+    return run_ui_overlay(
+        title="PAUSED",
+        info_lines=[],
+        button_defs=button_defs,
+        title_color=(255, 255, 255),
+        hook_func=modloader.trigger_on_pause_screen,
+        on_esc=on_resume,
+        on_enter=on_resume
+    )
+
 
 ################################################
 ##################### Init #####################
@@ -522,7 +570,7 @@ while running:
             if event.key == pygame.K_ESCAPE:
                 paused = True
                 dump_status("Paused", points, "paused")
-                afterpause = gui.pause_screen(root)
+                afterpause = show_pause_screen()
                 if afterpause == "exit":
                     running = False
                 elif afterpause == "resume":
