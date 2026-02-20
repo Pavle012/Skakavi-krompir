@@ -37,7 +37,6 @@ def dump_status(status_text, score, state):
         pass
 
 import pygame
-import gui
 import scores
 import random
 import namecheck
@@ -47,6 +46,7 @@ import os
 import replays
 import particles
 import powerups
+import options
 from typing import Optional
 
 paused = False  # initialize before use because of type checking
@@ -498,6 +498,42 @@ def show_pause_screen():
         on_enter=on_resume
     )
 
+def show_main_menu():
+    def on_start(): return "start"
+    def on_exit(): return "exit"
+    def on_settings():
+        options.start(root)
+        return None
+    def on_scores():
+        scores.start(root)
+        return None
+    def on_public_leaderboard():
+        scores.start_public(root)
+        return None
+    def on_replays():
+        replay_data = replays.start(root)
+        if replay_data:
+            return ("replay", replay_data)
+        return None
+
+    button_defs = [
+        ("Start Game", (46, 204, 113), (39, 174, 96), on_start),
+        ("Settings", (155, 89, 182), (142, 68, 173), on_settings),
+        ("Scores", (52, 152, 219), (41, 128, 185), on_scores),
+        ("Leaderboard", (52, 152, 219), (41, 128, 185), on_public_leaderboard),
+        ("Replays", (230, 126, 34), (211, 84, 0), on_replays),
+        ("Exit", (231, 76, 60), (192, 57, 43), on_exit),
+    ]
+
+    return run_ui_overlay(
+        title="Skakavi Krompir",
+        info_lines=[],
+        button_defs=button_defs,
+        hook_func=modloader.trigger_on_main_menu,
+        on_esc=on_exit,
+        on_enter=on_start
+    )
+
 
 ################################################
 ##################### Init #####################
@@ -509,21 +545,6 @@ import customtkinter as ctk
 root = ctk.CTk()
 root.withdraw()
 
-rememberName = getSettings("rememberName") == "True"
-
-if rememberName:
-    name = getSettings("name")
-else:
-    name = namecheck.getname(root)
-
-menu_res = gui.main_menu(root)
-if menu_res == "exit":
-    sys.exit()
-
-initial_replay = None
-if isinstance(menu_res, tuple) and menu_res[0] == "replay":
-    initial_replay = menu_res[1]
-    
 HEIGHT = 600
 WIDTH = 800
 pygame.init()
@@ -536,6 +557,25 @@ image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 pygame.display.set_icon(image)
 
 powerup_manager = powerups.PowerupManager(dependencies.get_assets_dir())
+
+# Basic setup needed for background rendering in main menu
+# restart() will do a full reset later, but we need it once here.
+restart()
+
+rememberName = getSettings("rememberName") == "True"
+
+if rememberName:
+    name = getSettings("name")
+else:
+    name = namecheck.getname(root)
+
+menu_res = show_main_menu()
+if menu_res == "exit":
+    sys.exit()
+
+initial_replay = None
+if isinstance(menu_res, tuple) and menu_res[0] == "replay":
+    initial_replay = menu_res[1]
 
 ################################################
 ################### Main Loop ##################
@@ -581,7 +621,7 @@ while running:
                     if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image_on_resume, rotated_rect_on_resume):
                         if replaying:
                             # Replay ended prematurely via pause-resume? Just go back to menu
-                            menu_res = gui.main_menu(root)
+                            menu_res = show_main_menu()
                             if menu_res == "exit":
                                 running = False
                             else:
@@ -778,7 +818,7 @@ while running:
             if y > HEIGHT + 100:
                 if replaying:
                     # Replay ended (either finished or crashed)
-                    menu_res = gui.main_menu(root)
+                    menu_res = show_main_menu()
                     if menu_res == "exit":
                         running = False
                     else:
