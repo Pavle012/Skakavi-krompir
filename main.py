@@ -47,9 +47,13 @@ import replays
 import particles
 import powerups
 import options
+import multiplayer
+import customtkinter as ctk
 from typing import Optional
 
 paused = False  # initialize before use because of type checking
+mp_server = None
+mp_client = None
 x = 100         # default x (restart() will overwrite)
 y = 0           # default y (restart() will overwrite)
 points = 0      # default points (restart() will overwrite)
@@ -143,7 +147,7 @@ floating_texts = []
 def restart(replay_data=None):
     global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT, dying
     global replaying, current_replay_data, current_recording, frame_index, current_seed, replay_config, speed_increase, powerup_manager
-    global particle_manager
+    global particle_manager, mp_client
     
     reloadSettings()
     
@@ -165,7 +169,11 @@ def restart(replay_data=None):
         current_replay_data = None
         current_recording = []
         frame_index = 0
-        current_seed = int(time.time() * 1000)
+        if mp_client and mp_client.current_seed is not None:
+            current_seed = mp_client.current_seed
+        else:
+            current_seed = int(time.time() * 1000)
+        
         replay_config = {
             "scrollPixelsPerFrame": scrollPixelsPerFrame,
             "jumpVelocity": jumpVelocity,
@@ -278,11 +286,31 @@ def spawnPipe():
         pipe(realX, py, is_top).draw(screen)
 
 def render_game():
-    global screen, WIDTH, HEIGHT, rotated_image, rotated_rect, points, font, game_state_for_mods
+    global screen, WIDTH, HEIGHT, rotated_image, rotated_rect, points, font, game_state_for_mods, mp_client
     screen.fill((66, 183, 237))
     spawnPipe()
     particle_manager.draw(screen)
     powerup_manager.draw(screen, scroll)
+    
+    # Draw ghost players
+    if mp_client:
+        mp_client.update_interpolation()
+        for p_id, p in mp_client.remote_players.items():
+            if not p["alive"]:
+                 continue
+            # Draw translucent potato
+            ghost_angle = p["curr_rot"]
+            ghost_img = pygame.transform.rotate(image, ghost_angle)
+            ghost_img.set_alpha(150) # Translucent
+            ghost_rect = ghost_img.get_rect(center=(p["curr_x"] + 39, p["curr_y"] + 29)) # Approx center
+            screen.blit(ghost_img, ghost_rect.topleft)
+            
+            # Draw name tag
+            name_font = pygame.font.Font(dependencies.get_font_path(), 18)
+            name_surf = name_font.render(p["name"], True, (255, 255, 255))
+            name_rect = name_surf.get_rect(center=(p["curr_x"] + 39, p["curr_y"] - 10))
+            screen.blit(name_surf, name_rect)
+
     if rotated_image and rotated_rect:
         screen.blit(rotated_image, rotated_rect.topleft)
         
@@ -347,7 +375,7 @@ def appendScore(score):
     with open(scores_path, "a") as f:
         f.write(f"{score}\n")
 
-def run_ui_overlay(title, info_lines, button_defs, title_color=(255, 255, 255), hook_func=None, on_esc=None, on_enter=None):
+def run_ui_overlay(title, info_lines, button_defs, title_color=(255, 255, 255), hook_func=None, on_esc=None, on_enter=None, per_frame_callback=None):
     global WIDTH, HEIGHT, screen, clock, root
     
     if hook_func:
@@ -357,6 +385,10 @@ def run_ui_overlay(title, info_lines, button_defs, title_color=(255, 255, 255), 
     info_font = pygame.font.Font(dependencies.get_font_path(), 32)
 
     while True:
+        if per_frame_callback:
+            res = per_frame_callback()
+            if res: return res
+            
         render_game()
         
         dim_overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -429,7 +461,7 @@ def run_ui_overlay(title, info_lines, button_defs, title_color=(255, 255, 255), 
         clock.tick(60)
 
 def show_lose_screen():
-    global points, name, replaying, current_seed, current_recording, replay_config
+    global points, name, replaying, current_seed, current_recording, replay_config, mp_client, mp_server
     
     def on_restart(): return "restart"
     def on_exit(): return "exit"
@@ -439,6 +471,19 @@ def show_lose_screen():
     def on_save_replay():
         replays.save_replay(current_seed, current_recording, points, name, replay_config)
         return "restart"
+    def on_ready():
+        if mp_client:
+            mp_client.send_ready(True)
+        return None
+    def on_stop_server():
+        global mp_client, mp_server
+        if mp_server:
+            mp_server.stop()
+            mp_server = None
+        if mp_client:
+            mp_client.disconnect()
+            mp_client = None
+        return "exit"
 
     button_defs = [
         ("Restart", (46, 204, 113), (39, 174, 96), on_restart),
@@ -446,8 +491,20 @@ def show_lose_screen():
         ("Exit", (231, 76, 60), (192, 57, 43), on_exit),
     ]
     
+    if mp_client:
+        button_defs.insert(0, ("Ready Up", (46, 204, 113), (39, 174, 96), on_ready))
+        
+    if mp_server:
+        button_defs.append(("Stop Server", (231, 76, 60), (192, 57, 43), on_stop_server))
+    
     if not replaying:
         button_defs.append(("Save Replay", (155, 89, 182), (142, 68, 173), on_save_replay))
+
+    def lose_callback():
+        if mp_client and mp_client.should_start_game:
+            mp_client.should_start_game = False
+            return "restart"
+        return None
 
     return run_ui_overlay(
         title="YOU LOST!",
@@ -456,10 +513,12 @@ def show_lose_screen():
         title_color=(255, 80, 80),
         hook_func=modloader.trigger_on_lose_screen,
         on_esc=on_exit,
-        on_enter=on_restart
+        on_enter=on_restart,
+        per_frame_callback=lose_callback
     )
 
 def show_pause_screen():
+    global mp_server, mp_client
     def on_resume(): return "resume"
     def on_exit(): return "exit"
     def on_scores():
@@ -478,6 +537,15 @@ def show_pause_screen():
         game_executable_path = sys.argv[0]
         updater.start_update(game_executable_path)
         return "exit"
+    def on_stop_server():
+        global mp_client, mp_server
+        if mp_server:
+            mp_server.stop()
+            mp_server = None
+        if mp_client:
+            mp_client.disconnect()
+            mp_client = None
+        return "exit"
 
     button_defs = [
         ("Resume", (46, 204, 113), (39, 174, 96), on_resume),
@@ -487,6 +555,9 @@ def show_pause_screen():
         ("Update", (230, 126, 34), (211, 84, 0), on_update),
         ("Exit", (231, 76, 60), (192, 57, 43), on_exit),
     ]
+    
+    if mp_server:
+        button_defs.append(("Stop Server", (231, 76, 60), (192, 57, 43), on_stop_server))
 
     return run_ui_overlay(
         title="PAUSED",
@@ -497,6 +568,155 @@ def show_pause_screen():
         on_esc=on_resume,
         on_enter=on_resume
     )
+
+def show_multiplayer_menu():
+    def on_add(): return "add"
+    def on_create(): return "create"
+    def on_back(): return "back"
+
+    button_defs = [
+        ("Add Server", (46, 204, 113), (39, 174, 96), on_add),
+        ("Create Server", (52, 152, 219), (41, 128, 185), on_create),
+        ("Back", (231, 76, 60), (192, 57, 43), on_back),
+    ]
+
+    return run_ui_overlay(
+        title="Multiplayer",
+        info_lines=["Connect to a server or host one!"],
+        button_defs=button_defs,
+        on_esc=on_back
+    )
+
+def show_lobby_screen(client, is_admin):
+    global mp_server, mp_client
+    
+    def on_start():
+        if is_admin:
+            client.admin_start()
+        return None
+        
+    def on_back():
+        global mp_client, mp_server
+        client.disconnect()
+        if mp_server:
+            mp_server.stop()
+            mp_server = None
+        mp_client = None
+        return "back"
+
+    def lobby_callback():
+        global mp_client, mp_server
+        if client.should_start_game:
+            client.should_start_game = False
+            return "start"
+            
+        if client.connection_error or client.was_kicked:
+            client.disconnect()
+            mp_client = None
+            if mp_server:
+                mp_server.stop()
+                mp_server = None
+            return "kicked"
+        return None
+
+    while True:
+        player_names = [p["name"] for p in client.remote_players.values()]
+        player_names.insert(0, client.name + " (You)")
+        info_lines = [f"Players connected: {len(player_names)}"] + player_names[:5]
+
+        button_defs = []
+        if is_admin:
+            button_defs.append(("Start Game", (46, 204, 113), (39, 174, 96), on_start))
+        button_defs.append(("Disconnect", (231, 76, 60), (192, 57, 43), on_back))
+
+        res = run_ui_overlay(
+            title="Lobby",
+            info_lines=info_lines,
+            button_defs=button_defs,
+            on_esc=on_back,
+            per_frame_callback=lobby_callback
+        )
+        if res: return res
+
+def get_text_input(title, text):
+    global root
+    # Create a small modal-like window without the strict 'grab_set' that fails on some Linux distros
+    input_window = ctk.CTkToplevel(root)
+    input_window.title(title)
+    input_window.geometry("300x150")
+    input_window.attributes("-topmost", True)
+    
+    # Position it near the center of the screen
+    input_window.update_idletasks()
+    
+    result = {"value": None}
+    
+    label = ctk.CTkLabel(input_window, text=text)
+    label.pack(pady=10)
+    
+    entry = ctk.CTkEntry(input_window)
+    entry.pack(pady=5)
+    entry.focus_set()
+    
+    def on_submit():
+        result["value"] = entry.get()
+        input_window.destroy()
+
+    btn = ctk.CTkButton(input_window, text="OK", command=on_submit)
+    btn.pack(pady=10)
+    
+    input_window.bind("<Return>", lambda e: on_submit())
+    input_window.bind("<Escape>", lambda e: input_window.destroy())
+    
+    input_window.wait_window()
+    return result["value"]
+
+def handle_multiplayer():
+    global name, root, mp_client, mp_server
+    
+    while True:
+        choice = show_multiplayer_menu()
+        if choice == "back" or choice == "kicked":
+            return None
+            
+        if choice == "add":
+            server_addr = get_text_input("Join Server", "Enter server address (IP:Port):")
+            if server_addr:
+                if ":" in server_addr:
+                    try:
+                        host, port = server_addr.split(":")
+                        port = int(port)
+                    except:
+                        host, port = server_addr, multiplayer.DEFAULT_PORT
+                else:
+                    host, port = server_addr, multiplayer.DEFAULT_PORT
+                
+                client = multiplayer.GameClient(host, port, name)
+                if client.connect():
+                    mp_client = client
+                    res = show_lobby_screen(client, False)
+                    if res == "start":
+                         return "start"
+                else:
+                    pass
+                    
+        elif choice == "create":
+            port_str = get_text_input("Create Server", f"Enter port (default {multiplayer.DEFAULT_PORT}):")
+            port = int(port_str) if port_str and port_str.isdigit() else multiplayer.DEFAULT_PORT
+            
+            srv = multiplayer.GameServer(port=port, admin_name=name)
+            srv.start()
+            mp_server = srv
+            
+            client = multiplayer.GameClient("127.0.0.1", port, name)
+            if client.connect():
+                mp_client = client
+                res = show_lobby_screen(client, True)
+                if res == "start":
+                    return "start"
+            else:
+                srv.stop()
+                mp_server = None
 
 def show_main_menu():
     def on_start(): return "start"
@@ -515,9 +735,12 @@ def show_main_menu():
         if replay_data:
             return ("replay", replay_data)
         return None
+    def on_multiplayer():
+        return "multiplayer"
 
     button_defs = [
         ("Start Game", (46, 204, 113), (39, 174, 96), on_start),
+        ("Multiplayer", (155, 89, 182), (142, 68, 173), on_multiplayer),
         ("Settings", (155, 89, 182), (142, 68, 173), on_settings),
         ("Scores", (52, 152, 219), (41, 128, 185), on_scores),
         ("Leaderboard", (52, 152, 219), (41, 128, 185), on_public_leaderboard),
@@ -569,13 +792,20 @@ if rememberName:
 else:
     name = namecheck.getname(root)
 
-menu_res = show_main_menu()
-if menu_res == "exit":
-    sys.exit()
-
 initial_replay = None
-if isinstance(menu_res, tuple) and menu_res[0] == "replay":
-    initial_replay = menu_res[1]
+while True:
+    menu_res = show_main_menu()
+    if menu_res == "exit":
+        sys.exit()
+    elif menu_res == "multiplayer":
+        res = handle_multiplayer()
+        if res == "start":
+            break
+    elif menu_res == "start":
+        break
+    elif isinstance(menu_res, tuple) and menu_res[0] == "replay":
+        initial_replay = menu_res[1]
+        break
 
 ################################################
 ################### Main Loop ##################
@@ -664,6 +894,27 @@ while running:
             screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 
     if not paused:
+        if mp_client:
+            # Sync our position to others
+            # 'angle' is calculated later in the frame, let's use the current one or calculate it here
+            calc_angle = max(min(velocity * -2.5, 30), -90)
+            if dying:
+                 calc_angle = (pygame.time.get_ticks() // 5) % 360
+            mp_client.send_update(x, y, calc_angle, not dying, points)
+            
+            # If server sent a forced restart (e.g. game started while we were in a game)
+            if mp_client.should_start_game:
+                mp_client.should_start_game = False
+                restart()
+                
+            if mp_client.connection_error or mp_client.was_kicked:
+                 # Local disconnect handling
+                 mp_client.disconnect()
+                 mp_client = None
+                 if mp_server:
+                      mp_server.stop()
+                      mp_server = None
+
         if replaying:
             if frame_index < len(current_replay_data["frames"]):
                 frame = current_replay_data["frames"][frame_index]
