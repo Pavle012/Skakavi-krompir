@@ -806,6 +806,8 @@ def get_text_input(title, text):
     input_window.bind("<Return>", lambda e: on_submit())
     input_window.bind("<Escape>", lambda e: input_window.destroy())
     
+    input_window.lift()
+    input_window.focus_force()
     input_window.wait_window()
     return result["value"]
 

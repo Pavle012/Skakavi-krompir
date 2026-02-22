@@ -64,9 +64,7 @@ def start(root):
     toplevel = ctk.CTkToplevel(root)
     toplevel.title("Saved Replays")
     toplevel.geometry("500x500")
-    toplevel.wait_visibility()
-    toplevel.grab_set() # Make it modal
-
+    
     selected_replay = {"data": None}
 
     def on_select(replay_data):
@@ -122,5 +120,8 @@ def start(root):
 
     ctk.CTkButton(toplevel, text="Close", command=toplevel.destroy, font=(dependencies.get_font_path(), 14)).pack(pady=10)
 
+    toplevel.lift()
+    toplevel.focus_force()
     toplevel.wait_window()
+
     return selected_replay["data"]

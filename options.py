@@ -164,6 +164,8 @@ def options(root):
     resetSettingsButton = ctk.CTkButton(toplevel, text="Reset Settings", command=lambda: reset_settings(), font=(dependencies.get_font_path(), 12))
     resetSettingsButton.pack()
     
+    toplevel.lift()
+    toplevel.focus_force()
     modloader.trigger_on_settings(toplevel)
     toplevel.wait_window()
 
