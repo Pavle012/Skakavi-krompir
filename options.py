@@ -226,7 +226,15 @@ def options(root):
     toplevel.lift()
     toplevel.focus_force()
     modloader.trigger_on_settings(toplevel)
-    toplevel.wait_window()
+    
+    import time
+    while toplevel.winfo_exists():
+        try:
+            root.update_idletasks()
+            root.update()
+        except:
+            break
+        time.sleep(0.01)
 
 
 def start(root):

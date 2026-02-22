@@ -122,6 +122,13 @@ def start(root):
 
     toplevel.lift()
     toplevel.focus_force()
-    toplevel.wait_window()
+    
+    while toplevel.winfo_exists():
+        try:
+            root.update_idletasks()
+            root.update()
+        except:
+            break
+        time.sleep(0.01)
 
     return selected_replay["data"]

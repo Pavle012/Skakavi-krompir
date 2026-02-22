@@ -81,7 +81,14 @@ def start(root):
         font=(dependencies.get_font_path(), 12)
     ).pack(pady=10)
 
-    toplevel.wait_window()
+    import time
+    while toplevel.winfo_exists():
+        try:
+            root.update_idletasks()
+            root.update()
+        except:
+            break
+        time.sleep(0.01)
 
 def start_public(root):
     """Displays the public leaderboard."""
@@ -112,4 +119,11 @@ def start_public(root):
     else:
         ctk.CTkLabel(public_toplevel, text="Could not fetch leaderboard.", font=(dependencies.get_font_path(), 12)).pack()
 
-    public_toplevel.wait_window()
+    import time
+    while public_toplevel.winfo_exists():
+        try:
+            root.update_idletasks()
+            root.update()
+        except:
+            break
+        time.sleep(0.01)

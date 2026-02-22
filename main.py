@@ -611,6 +611,7 @@ def run_ui_overlay(title, info_lines, button_defs, title_color=(255, 255, 255), 
                 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
         
         try:
+            root.update_idletasks()
             root.update()
         except:
             pass
@@ -826,7 +827,17 @@ def get_text_input(title, text):
     
     input_window.lift()
     input_window.focus_force()
-    input_window.wait_window()
+    
+    # Custom wait loop to ensure responsiveness on all platforms
+    while input_window.winfo_exists():
+        try:
+            root.update_idletasks()
+            root.update()
+        except:
+            break
+        # Small sleep to be CPU friendly while waiting for modal input
+        time.sleep(0.01)
+        
     return result["value"]
 
 def handle_multiplayer():
