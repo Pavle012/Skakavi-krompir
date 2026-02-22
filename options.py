@@ -10,7 +10,7 @@ import os
 def options(root):
     toplevel = ctk.CTkToplevel(root)
     toplevel.title("skakavi krompir settings")
-    toplevel.geometry("400x700")
+    toplevel.geometry("400x850")
 
     def getSettings(key):
         settings = {}
@@ -78,6 +78,39 @@ def options(root):
                 new_icon = ImageTk.PhotoImage(pil_icon)
                 toplevel.iconphoto(True, new_icon)
     
+    def upload_sound(sound_type):
+        file_path = filedialog.askopenfilename(
+            initialdir="/",
+            title=f"Select {sound_type.capitalize()} Sound File",
+            filetypes=(("Audio files", "*.wav *.mp3"), ("All files", "*.*"))
+        )
+        
+        if file_path:
+            ext = os.path.splitext(file_path)[1]
+            # Use the target name preferred by the game logic
+            target_name = f"{sound_type}{ext}"
+            # For music, we prefer music.mp3 or music.wav
+            # For others we prefer jump.wav, death.wav, etc. (but the game logic check is flexible)
+            
+            dest_folder = dependencies.get_assets_dir()
+            dest_path = os.path.join(dest_folder, target_name)
+            
+            # Remove existing placeholder if extension differs
+            if sound_type != "music":
+                old_wav = os.path.join(dest_folder, f"{sound_type}.wav")
+                old_mp3 = os.path.join(dest_folder, f"{sound_type}.mp3")
+                if os.path.exists(old_wav): os.remove(old_wav)
+                if os.path.exists(old_mp3): os.remove(old_mp3)
+            else:
+                old_wav = os.path.join(dest_folder, "music.wav")
+                old_mp3 = os.path.join(dest_folder, "music.mp3")
+                if os.path.exists(old_wav): os.remove(old_wav)
+                if os.path.exists(old_mp3): os.remove(old_mp3)
+
+            shutil.copyfile(file_path, dest_path)
+            print(f"Uploaded {sound_type} to {dest_path}")
+            # Note: Sounds are reloaded on next game start/restart
+    
     def reset_settings():
         # remove the appdata/.local settings folder
         data_dir = dependencies.get_user_data_dir()
@@ -99,6 +132,20 @@ def options(root):
     uploadFontButton.pack()
     uploadImageButton = ctk.CTkButton(toplevel, text="Upload your own potato", command=upload_image, font=(dependencies.get_font_path(), 12))
     uploadImageButton.pack()
+    
+    # Sound Upload Buttons
+    sound_frame = ctk.CTkFrame(toplevel)
+    sound_frame.pack(pady=10, fill="x", padx=20)
+    ctk.CTkLabel(sound_frame, text="Custom Sounds", font=(dependencies.get_font_path(), 14)).pack()
+    
+    btn_grid = ctk.CTkFrame(sound_frame)
+    btn_grid.pack(pady=5)
+    
+    ctk.CTkButton(btn_grid, text="Jump", width=80, command=lambda: upload_sound("jump"), font=(dependencies.get_font_path(), 10)).grid(row=0, column=0, padx=2)
+    ctk.CTkButton(btn_grid, text="Death", width=80, command=lambda: upload_sound("death"), font=(dependencies.get_font_path(), 10)).grid(row=0, column=1, padx=2)
+    ctk.CTkButton(btn_grid, text="Score", width=80, command=lambda: upload_sound("score"), font=(dependencies.get_font_path(), 10)).grid(row=0, column=2, padx=2)
+    ctk.CTkButton(btn_grid, text="Powerup", width=80, command=lambda: upload_sound("powerup"), font=(dependencies.get_font_path(), 10)).grid(row=1, column=0, padx=2, pady=2)
+    ctk.CTkButton(btn_grid, text="Music", width=80, command=lambda: upload_sound("music"), font=(dependencies.get_font_path(), 10)).grid(row=1, column=1, padx=2, pady=2)
     
     
     clarifylabel = ctk.CTkLabel(toplevel, text="Speed", font=(dependencies.get_font_path(), 12))
