@@ -35,9 +35,9 @@ def dump_status(status_text, score, state):
             json.dump(data, f)
     except Exception:
         pass
-
 import pygame
 import scores
+import achievements
 import random
 import namecheck
 import modloader
@@ -60,6 +60,11 @@ points = 0      # default points (restart() will overwrite)
 velocity = 0    # etc.
 scroll = 500
 speed_increase = 3
+difficulty = "Normal"
+game_mode = "Classic"
+time_left = 60.0
+powerups_collected_this_run = 0
+achievement_manager = None
 rotated_image = None
 rotated_rect = None
 game_state_for_mods = {}
@@ -148,8 +153,14 @@ def restart(replay_data=None):
     global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT, dying
     global replaying, current_replay_data, current_recording, frame_index, current_seed, replay_config, speed_increase, powerup_manager
     global particle_manager, mp_client
+    global difficulty, game_mode, time_left, powerups_collected_this_run, achievement_manager
     
     reloadSettings()
+    
+    if achievement_manager is None:
+        achievement_manager = achievements.AchievementManager()
+    
+    achievement_manager.update_stat("total_games", 1)
     
     particle_manager = particles.ParticleManager()
     
@@ -164,6 +175,8 @@ def restart(replay_data=None):
         scrollPixelsPerFrame = replay_config.get("scrollPixelsPerFrame", scrollPixelsPerFrame)
         jumpVelocity = replay_config.get("jumpVelocity", jumpVelocity)
         speed_increase = replay_config.get("speed_increase", speed_increase)
+        difficulty = replay_config.get("difficulty", "Normal")
+        game_mode = replay_config.get("game_mode", "Classic")
     else:
         replaying = False
         current_replay_data = None
@@ -177,9 +190,23 @@ def restart(replay_data=None):
         replay_config = {
             "scrollPixelsPerFrame": scrollPixelsPerFrame,
             "jumpVelocity": jumpVelocity,
-            "speed_increase": speed_increase
+            "speed_increase": speed_increase,
+            "difficulty": difficulty,
+            "game_mode": game_mode
         }
     
+    # Apply Difficulty Settings
+    PIPE_SPACING = 300
+    GAP_SIZE = 300
+    if difficulty == "Easy":
+        scrollPixelsPerFrame = max(1, scrollPixelsPerFrame - 1)
+        GAP_SIZE = 400
+        PIPE_SPACING = 400
+    elif difficulty == "Hard":
+        scrollPixelsPerFrame += 1
+        GAP_SIZE = 200
+        PIPE_SPACING = 250
+        
     random.seed(current_seed)
     
     dying = False
@@ -190,12 +217,12 @@ def restart(replay_data=None):
     clock = pygame.time.Clock()
     paused = False
     points = 0
+    time_left = 60.0
+    powerups_collected_this_run = 0
     text_str = f"Points: {points}"
     text = font.render(text_str, True, (255, 255, 255))
     pipeNumber = 500
     scroll = 500
-    PIPE_SPACING = 300
-    GAP_SIZE = 300
     pipesPos = []
     powerup_manager.reset()
     pipeColor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
@@ -204,22 +231,13 @@ def restart(replay_data=None):
         pipesPos.append((100 + (i * PIPE_SPACING), (HEIGHT/2) + GAP_SIZE + -750 + randomY, True))
         pipesPos.append((100 + (i * PIPE_SPACING), (HEIGHT/2) + GAP_SIZE + -150 + randomY, False))
         
-        # Chance to spawn powerup between pipes
-        # Middle Y is roughly randomY + (HEIGHT/2) + GAP_SIZE - 450? 
-        # Calculating gap center:
-        # Top pipe ends at: (HEIGHT/2) + GAP_SIZE - 750 + randomY + 300 = HEIGHT/2 + GAP_SIZE - 450 + randomY
-        # Bottom pipe starts at: (HEIGHT/2) + GAP_SIZE - 150 + randomY
-        # Gap center = (Top_end + Bottom_start) / 2
-        # Top_end = (HEIGHT/2) + GAP_SIZE + randomY - 450
-        # Bottom_start = (HEIGHT/2) + GAP_SIZE + randomY - 150
-        # Average = (HEIGHT/2) + GAP_SIZE + randomY - 300
         gap_center_y = (HEIGHT/2) + GAP_SIZE + randomY - 300
         
-        # X position: in the middle of the gap between this pipe and the next?
-        # Or just at the pipe's X? If at pipe's X, it's inside the gap.
-        # Pipe X is 100 + (i * PIPE_SPACING)
-        # 30% chance to spawn a powerup
-        if random.random() < 0.3:
+        # 30% chance to spawn a powerup (Higher in Zen mode?)
+        powerup_chance = 0.3
+        if game_mode == "Zen": powerup_chance = 0.5
+        
+        if random.random() < powerup_chance:
             powerup_x = 100 + (i * PIPE_SPACING) + 10 
             powerup_manager.spawn_powerup(powerup_x, gap_center_y)
     
@@ -227,6 +245,7 @@ def restart(replay_data=None):
     image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
     image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
     modloader.trigger_on_restart()
+
 
 
 def isPotatoColliding(potato_surface, potato_rect):
@@ -320,12 +339,23 @@ def render_game():
         pulse = (pygame.time.get_ticks() // 100) % 5
         pygame.draw.circle(screen, (0, 255, 255), rotated_rect.center, 30 + pulse, 3)
         
-    # Draw floating texts
+    # Draw Floating Texts
     for ft in floating_texts:
         ft.draw(screen)
 
     points_text = font.render(f"Points: {points}", True, (255, 255, 255))
     screen.blit(points_text, (WIDTH - points_text.get_width() - 10, 10))
+    
+    # Show Mode and Difficulty
+    mode_font = pygame.font.Font(dependencies.get_font_path(), 18)
+    mode_text = mode_font.render(f"{game_mode} | {difficulty}", True, (255, 255, 255))
+    screen.blit(mode_text, (10, 10))
+    
+    if game_mode == "Time Attack":
+        timer_color = (255, 255, 255)
+        if time_left < 10: timer_color = (255, 100, 100)
+        timer_text = font.render(f"Time: {int(time_left)}s", True, timer_color)
+        screen.blit(timer_text, (WIDTH // 2 - timer_text.get_width() // 2, 10))
     
     if game_state_for_mods:
         modloader.trigger_on_draw(screen, game_state_for_mods)
@@ -341,7 +371,7 @@ def getSettings(key: str) -> Optional[str]:
     return settings.get(key)
 
 def reloadSettings():
-    global scrollPixelsPerFrame, jumpVelocity, font, maxfps, speed_increase
+    global scrollPixelsPerFrame, jumpVelocity, font, maxfps, speed_increase, difficulty, game_mode
     def _get_int_setting(key: str, default: int) -> int:
         val = getSettings(key)
         if val is None:
@@ -368,6 +398,8 @@ def reloadSettings():
     font = pygame.font.Font(dependencies.get_font_path(), 36)
     rememberName = getSettings("rememberName") == "True"
     speed_increase = _get_float_setting("speed_increase", 3.0)
+    difficulty = getSettings("difficulty") or "Normal"
+    game_mode = getSettings("game_mode") or "Classic"
     
 
 def appendScore(score):
@@ -737,10 +769,14 @@ def show_main_menu():
         return None
     def on_multiplayer():
         return "multiplayer"
+    def on_achievements():
+        achievements.show_achievements_gui(root)
+        return None
 
     button_defs = [
         ("Start Game", (46, 204, 113), (39, 174, 96), on_start),
         ("Multiplayer", (155, 89, 182), (142, 68, 173), on_multiplayer),
+        ("Achievements", (255, 215, 0), (218, 165, 32), on_achievements),
         ("Settings", (155, 89, 182), (142, 68, 173), on_settings),
         ("Scores", (52, 152, 219), (41, 128, 185), on_scores),
         ("Leaderboard", (52, 152, 219), (41, 128, 185), on_public_leaderboard),
@@ -979,6 +1015,9 @@ while running:
             collected_effect, expired_effects = powerup_manager.update(delta, scroll, rotated_rect)
             
             if collected_effect:
+                powerups_collected_this_run += 1
+                achievement_manager.update_stat("total_powerups", 1)
+                achievement_manager.update_stat("powerups_in_run", powerups_collected_this_run, incremental=False)
                 # Handle instant effects
                 p_text = ""
                 p_color = (255, 255, 255)
@@ -1055,13 +1094,26 @@ while running:
 
         # --- Collision and State Transitions ---
         if not dying:
-            collision_detected = y > HEIGHT or y < 0 or isPotatoColliding(rotated_image, rotated_rect)
+            if game_mode == "Zen":
+                collision_detected = False
+            else:
+                collision_detected = y > HEIGHT or y < 0 or isPotatoColliding(rotated_image, rotated_rect)
+                
+            if game_mode == "Time Attack":
+                time_left -= delta
+                if time_left <= 0:
+                    collision_detected = True
+                    time_left = 0
+            
             if collision_detected:
                 if not modloader.trigger_on_collision():
                      collision_detected = False
             
             if collision_detected:
                 dying = True
+                achievement_manager.update_stat("high_score", points, incremental=False)
+                if game_mode == "Zen":
+                    achievement_manager.update_stat("zen_high_score", points, incremental=False)
                 velocity = -8 # Small jump up on death
                 particle_manager.create_collision_effect(x + 39, y + 29) # Center of player
         else:

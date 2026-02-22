@@ -144,6 +144,22 @@ def options(root):
         print("Error: speed_increase not found in settings.txt, using default value of 3")
     speedIncrease.bind("<Return>", lambda event: setSettings("speed_increase", speedIncrease.get()))
     speedIncrease.pack()
+
+    clarifylabel = ctk.CTkLabel(toplevel, text="Difficulty", font=(dependencies.get_font_path(), 12))
+    clarifylabel.pack()
+    difficultyVal = getSettings("difficulty")
+    if not difficultyVal: difficultyVal = "Normal"
+    difficultySelector = ctk.CTkSegmentedButton(toplevel, values=["Easy", "Normal", "Hard"], command=lambda v: setSettings("difficulty", v))
+    difficultySelector.set(difficultyVal)
+    difficultySelector.pack(pady=5)
+
+    clarifylabel = ctk.CTkLabel(toplevel, text="Game Mode", font=(dependencies.get_font_path(), 12))
+    clarifylabel.pack()
+    gameModeVal = getSettings("game_mode")
+    if not gameModeVal: gameModeVal = "Classic"
+    gameModeSelector = ctk.CTkSegmentedButton(toplevel, values=["Classic", "Time Attack", "Zen"], command=lambda v: setSettings("game_mode", v))
+    gameModeSelector.set(gameModeVal)
+    gameModeSelector.pack(pady=5)
     
     resetSettingsButton = ctk.CTkButton(toplevel, text="Reset Settings", command=lambda: reset_settings(), font=(dependencies.get_font_path(), 12))
     resetSettingsButton.pack()
