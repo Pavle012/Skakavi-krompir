@@ -153,6 +153,8 @@ def install_configs():
             f.write("rememberName=False\n")
             f.write("name=User\n")
             f.write("speed_increase=0.03\n")
+            f.write("volume=0.5\n")
+            f.write("muted=False\n")
         print(f"Default settings file '{default_settings_path}' created.")
     create_shortcut()
 

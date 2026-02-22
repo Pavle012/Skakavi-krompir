@@ -10,7 +10,7 @@ import os
 def options(root):
     toplevel = ctk.CTkToplevel(root)
     toplevel.title("skakavi krompir settings")
-    toplevel.geometry("400x400")
+    toplevel.geometry("400x700")
 
     def getSettings(key):
         settings = {}
@@ -162,7 +162,19 @@ def options(root):
     gameModeSelector.pack(pady=5)
     
     resetSettingsButton = ctk.CTkButton(toplevel, text="Reset Settings", command=lambda: reset_settings(), font=(dependencies.get_font_path(), 12))
-    resetSettingsButton.pack()
+    resetSettingsButton.pack(pady=10)
+
+    # Audio Settings
+    ctk.CTkLabel(toplevel, text="Volume", font=(dependencies.get_font_path(), 12)).pack()
+    current_vol = float(getSettings("volume") or 0.5)
+    volumeSlider = ctk.CTkSlider(toplevel, from_=0, to=1, command=lambda v: setSettings("volume", str(round(v, 2))))
+    volumeSlider.set(current_vol)
+    volumeSlider.pack(pady=5)
+
+    mutedVal = getSettings("muted") == "True"
+    muteSwitch = ctk.CTkSwitch(toplevel, text="Mute", command=lambda: setSettings("muted", str(muteSwitch.get() == 1)))
+    if mutedVal: muteSwitch.select()
+    muteSwitch.pack(pady=5)
     
     toplevel.lift()
     toplevel.focus_force()

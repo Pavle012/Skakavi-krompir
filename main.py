@@ -77,8 +77,15 @@ current_seed = 0
 replay_config = {}
 powerup_manager = None
 replay_speed = 1.0
-replay_paused = False
 replay_markers = []
+
+# --- Sound Settings ---
+sound_jump = None
+sound_death = None
+sound_score = None
+sound_powerup = None
+volume = 0.5
+muted = False
 
 ###############################################
 ############ Flappy Bird-like Game ############
@@ -507,6 +514,17 @@ def reloadSettings():
     difficulty = getSettings("difficulty") or "Normal"
     game_mode = getSettings("game_mode") or "Classic"
     
+    global volume, muted
+    volume = _get_float_setting("volume", 0.5)
+    muted = getSettings("muted") == "True"
+    
+    # Update mixer volume if initialized
+    if pygame.mixer.get_init():
+        if muted:
+            pygame.mixer.music.set_volume(0)
+        else:
+            pygame.mixer.music.set_volume(volume * 0.5)
+    
 
 def appendScore(score):
     scores_path = os.path.join(dependencies.get_user_data_dir(), "scores.txt")
@@ -915,6 +933,46 @@ root.withdraw()
 HEIGHT = 600
 WIDTH = 800
 pygame.init()
+pygame.mixer.init()
+
+def load_sound(name):
+    path = os.path.join(dependencies.get_assets_dir(), name)
+    if os.path.exists(path):
+        try:
+            return pygame.mixer.Sound(path)
+        except:
+            return None
+    return None
+
+sound_jump = load_sound("jump.wav")
+sound_death = load_sound("death.wav")
+sound_score = load_sound("score.wav")
+sound_powerup = load_sound("powerup.wav")
+
+def play_sound(sound):
+    if sound and not muted:
+        sound.set_volume(volume)
+        sound.play()
+
+def play_music():
+    # Try .mp3 then .wav
+    path = os.path.join(dependencies.get_assets_dir(), "music.mp3")
+    if not os.path.exists(path):
+        path = os.path.join(dependencies.get_assets_dir(), "music.wav")
+    
+    if os.path.exists(path):
+        try:
+            pygame.mixer.music.load(path)
+            if muted:
+                pygame.mixer.music.set_volume(0)
+            else:
+                pygame.mixer.music.set_volume(volume * 0.5)
+            pygame.mixer.music.play(-1)
+        except:
+            pass
+
+play_music()
+
 modloader.load_mods()
 font = pygame.font.Font(dependencies.get_font_path(), 36)
 pygame.display.set_caption("skakavi krompir")
@@ -1047,6 +1105,7 @@ while running:
     if jump_this_frame:
          modloader.trigger_on_jump()
          velocity = -jumpVelocity
+         play_sound(sound_jump)
          # Create jump particles at the bottom center of the player
          # Player size is approx 78x58. Center is x + 39. Bottom is y + 58.
          particle_manager.create_jump_effect(x + 39, y + 58)
@@ -1093,6 +1152,7 @@ while running:
                     if frame["jump"]:
                         modloader.trigger_on_jump()
                         velocity = -jumpVelocity
+                        play_sound(sound_jump)
                         particle_manager.create_jump_effect(x + 39, y + 58)
                     
                     if frame.get("powerup"):
@@ -1130,6 +1190,7 @@ while running:
             
             if new_points > points:
                 modloader.trigger_on_score(new_points)
+                play_sound(sound_score)
             points = new_points
                 
             # make the speed go faster over time
@@ -1152,6 +1213,7 @@ while running:
             collected_effect, expired_effects = powerup_manager.update(delta, scroll, rotated_rect)
             
             if collected_effect:
+                play_sound(sound_powerup)
                 powerups_collected_this_run += 1
                 achievement_manager.update_stat("total_powerups", 1)
                 achievement_manager.update_stat("powerups_in_run", powerups_collected_this_run, incremental=False)
@@ -1261,6 +1323,7 @@ while running:
             
             if collision_detected:
                 dying = True
+                play_sound(sound_death)
                 achievement_manager.update_stat("high_score", points, incremental=False)
                 if game_mode == "Zen":
                     achievement_manager.update_stat("zen_high_score", points, incremental=False)
