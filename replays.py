@@ -97,13 +97,28 @@ def start(root):
             label_text = f"{replay['score']} pts — {replay['name']} ({replay['timestamp']})"
             ctk.CTkLabel(frame, text=label_text, font=(dependencies.get_font_path(), 12)).pack(side="left", padx=10, pady=5)
             
+            def copy_to_clipboard(data):
+                root.clipboard_clear()
+                root.clipboard_append(json.dumps(data))
+                root.update() # now it stays on the clipboard
+                
+            ctk.CTkButton(
+                frame, 
+                text="Copy", 
+                width=60, 
+                fg_color="#34495e",
+                hover_color="#2c3e50",
+                command=lambda r=replay['data']: copy_to_clipboard(r),
+                font=(dependencies.get_font_path(), 10)
+            ).pack(side="right", padx=5, pady=5)
+
             ctk.CTkButton(
                 frame, 
                 text="Watch", 
                 width=80, 
                 command=lambda r=replay['data']: on_select(r),
                 font=(dependencies.get_font_path(), 12)
-            ).pack(side="right", padx=10, pady=5)
+            ).pack(side="right", padx=5, pady=5)
 
     ctk.CTkButton(toplevel, text="Close", command=toplevel.destroy, font=(dependencies.get_font_path(), 14)).pack(pady=10)
 

@@ -35,6 +35,7 @@ class PowerupManager:
         self.powerup_types = []
         self.active_effects = {}
         self.assets_dir = assets_dir
+        self.simulated_time = 0.0 # Use simulated time for persistence
         self.load_powerups()
         
     def load_powerups(self):
@@ -50,7 +51,6 @@ class PowerupManager:
             
     def spawn_powerup(self, x, y):
         # Weighted random choice based on rarity
-        # Rarity is assumed to be a weight (higher = more frequent)
         if not self.powerup_types:
             return
 
@@ -66,33 +66,28 @@ class PowerupManager:
                 break
         
         if selected_type:
-             # Randomize Y slightly within the gap? Or passed Y is exact?
-             # For now, let's assume Y is the center of the gap.
              self.powerups.append(Powerup(x, y, selected_type))
 
     def update(self, delta, scroll, player_rect):
+        self.simulated_time += delta
         # Update all powerups with current scroll
         for p in self.powerups:
             p.update(delta, scroll)
             
         # Check collisions
         collected_effect = None
-        # Use a copy to modify list while iterating
         for p in self.powerups[:]:
-            # Simple optimization: only check collision if on screen
             if -50 < p.rect.x < 1000:
                 if player_rect.colliderect(p.rect):
                     self.powerups.remove(p)
                     effect = self.apply_effect(p.type_data)
-                    # For now just return the last collected one if multiple (unlikely)
                     if effect:
                         collected_effect = effect
                     
         # Update active effects
         expired_effects = []
-        current_time = time.time()
         for effect_id, data in self.active_effects.items():
-            if current_time > data["end_time"]:
+            if self.simulated_time > data["end_time"]:
                 expired_effects.append(effect_id)
                 
         for effect_id in expired_effects:
@@ -108,7 +103,7 @@ class PowerupManager:
         if duration > 0:
             # Persistent effect
             self.active_effects[effect_type] = {
-                "end_time": time.time() + duration,
+                "end_time": self.simulated_time + duration,
                 "value": value
             }
             return {"type": effect_type, "value": value, "duration": duration, "active": True}
@@ -131,3 +126,4 @@ class PowerupManager:
     def reset(self):
         self.powerups = []
         self.active_effects = {}
+        self.simulated_time = 0.0
