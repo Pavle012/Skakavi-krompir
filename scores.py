@@ -81,14 +81,31 @@ def start(root):
         font=(dependencies.get_font_path(), 12)
     ).pack(pady=10)
 
-    import time
-    while toplevel.winfo_exists():
-        try:
-            root.update_idletasks()
-            root.update()
-        except:
-            break
-        time.sleep(0.01)
+    toplevel.lift()
+    toplevel.focus_force()
+    
+    # Linux responsiveness fix
+    toplevel.wait_visibility()
+    toplevel.grab_set()
+
+    def close_scores():
+        toplevel.destroy()
+        root.quit()
+
+    ctk.CTkButton(toplevel, text="Close", command=close_scores, font=(dependencies.get_font_path(), 12)).pack(pady=5)
+
+    toplevel.protocol("WM_DELETE_WINDOW", close_scores)
+    toplevel.lift()
+    toplevel.focus_force()
+    
+    # Linux responsiveness fix
+    toplevel.wait_visibility()
+    toplevel.grab_set()
+
+    root.mainloop()
+
+    if toplevel.winfo_exists():
+        toplevel.destroy()
 
 def start_public(root):
     """Displays the public leaderboard."""
@@ -119,11 +136,28 @@ def start_public(root):
     else:
         ctk.CTkLabel(public_toplevel, text="Could not fetch leaderboard.", font=(dependencies.get_font_path(), 12)).pack()
 
-    import time
-    while public_toplevel.winfo_exists():
-        try:
-            root.update_idletasks()
-            root.update()
-        except:
-            break
-        time.sleep(0.01)
+    public_toplevel.lift()
+    public_toplevel.focus_force()
+    
+    # Linux responsiveness fix
+    public_toplevel.wait_visibility()
+    public_toplevel.grab_set()
+
+    def close_public():
+        public_toplevel.destroy()
+        root.quit()
+
+    ctk.CTkButton(public_toplevel, text="Close", command=close_public, font=(dependencies.get_font_path(), 12)).pack(pady=5)
+
+    public_toplevel.protocol("WM_DELETE_WINDOW", close_public)
+    public_toplevel.lift()
+    public_toplevel.focus_force()
+    
+    # Linux responsiveness fix
+    public_toplevel.wait_visibility()
+    public_toplevel.grab_set()
+
+    root.mainloop()
+
+    if public_toplevel.winfo_exists():
+        public_toplevel.destroy()

@@ -264,7 +264,11 @@ def restart(replay_data=None):
             powerup_manager.spawn_powerup(powerup_x, gap_center_y)
     
     # Reload the image in case it was changed
-    image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
+    raw_image = pygame.image.load(dependencies.get_potato_path())
+    if pygame.display.get_surface():
+        image = raw_image.convert_alpha()
+    else:
+        image = raw_image
     image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
     modloader.trigger_on_restart()
 
@@ -610,11 +614,8 @@ def run_ui_overlay(title, info_lines, button_defs, title_color=(255, 255, 255), 
             if WIDTH != current_w or HEIGHT != current_h:
                 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
         
-        try:
-            root.update_idletasks()
-            root.update()
-        except:
-            pass
+        # CustomTkinter updates removed from main Pygame loop to prevent unresponsiveness on Linux.
+        # Modals like Settings/Scores handle their own update loops when opened.
         clock.tick(60)
 
 def show_lose_screen():
@@ -828,6 +829,10 @@ def get_text_input(title, text):
     input_window.lift()
     input_window.focus_force()
     
+    # Ensure modal behavior on Linux/Wayland
+    input_window.wait_visibility()
+    input_window.grab_set()
+    
     # Custom wait loop to ensure responsiveness on all platforms
     while input_window.winfo_exists():
         try:
@@ -937,10 +942,18 @@ def show_main_menu():
 
 import customtkinter as ctk
 
-# Create a hidden root window
+# Create a root window but don't withdraw yet - namecheck will handle it
 root = ctk.CTk()
-root.withdraw()
+root.withdraw() # Start withdrawn, namecheck will deiconify if needed
 
+# 1. Get Name FIRST - Before Pygame Init
+rememberName = getSettings("rememberName") == "True"
+if rememberName:
+    name = getSettings("name")
+else:
+    name = namecheck.getname(root)
+
+# 2. Initialize Pygame AFTER Name Prompt
 HEIGHT = 600
 WIDTH = 800
 pygame.init()
@@ -982,28 +995,22 @@ def play_music():
         except:
             pass
 
+# 3. Setup Sound and Mods
 play_music()
-
 modloader.load_mods()
+
+# 4. Setup Display
 font = pygame.font.Font(dependencies.get_font_path(), 36)
 pygame.display.set_caption("skakavi krompir")
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+
+# 5. Initialize Game Systems
+powerup_manager = powerups.PowerupManager(dependencies.get_assets_dir())
+restart()
+
 image = pygame.image.load(dependencies.get_potato_path()).convert_alpha()
 image = pygame.transform.scale(image, (2360 // 30, 1745 // 30))
 pygame.display.set_icon(image)
-
-powerup_manager = powerups.PowerupManager(dependencies.get_assets_dir())
-
-# Basic setup needed for background rendering in main menu
-# restart() will do a full reset later, but we need it once here.
-restart()
-
-rememberName = getSettings("rememberName") == "True"
-
-if rememberName:
-    name = getSettings("name")
-else:
-    name = namecheck.getname(root)
 
 initial_replay = None
 while True:
@@ -1031,11 +1038,7 @@ just_resumed = False
 dump_status("Playing", points, "playing")
 
 while running:
-    try:
-        root.update()
-        root.update_idletasks()
-    except:
-        pass
+    # CustomTkinter updates removed from main Pygame loop to prevent unresponsiveness on Linux.
     jump_this_frame = False
     size_changed = False
     for event in pygame.event.get():

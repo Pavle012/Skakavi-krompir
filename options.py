@@ -118,6 +118,7 @@ def options(root):
             shutil.rmtree(data_dir)
         dependencies.load_global_icon_pil()
         toplevel.destroy()
+        root.quit()
 
     
     # Use the globally loaded icon
@@ -222,19 +223,31 @@ def options(root):
     muteSwitch = ctk.CTkSwitch(toplevel, text="Mute", command=lambda: setSettings("muted", str(muteSwitch.get() == 1)))
     if mutedVal: muteSwitch.select()
     muteSwitch.pack(pady=5)
+
+    def close_settings():
+        toplevel.destroy()
+        root.quit()
+
+    closeButton = ctk.CTkButton(toplevel, text="Close", command=close_settings, font=(dependencies.get_font_path(), 12))
+    closeButton.pack(pady=10)
+    
+    toplevel.protocol("WM_DELETE_WINDOW", lambda: root.quit())
     
     toplevel.lift()
     toplevel.focus_force()
+    
+    # Ensure modal behavior and visibility on Linux
+    toplevel.wait_visibility()
+    toplevel.grab_set()
+
     modloader.trigger_on_settings(toplevel)
     
-    import time
-    while toplevel.winfo_exists():
-        try:
-            root.update_idletasks()
-            root.update()
-        except:
-            break
-        time.sleep(0.01)
+    # Use mainloop for maximum responsiveness and stability while the menu is open
+    root.mainloop()
+    
+    # After mainloop finishes (via root.quit() in destroy), we cleanup
+    if toplevel.winfo_exists():
+        toplevel.destroy()
 
 
 def start(root):

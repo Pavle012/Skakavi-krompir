@@ -70,6 +70,7 @@ def start(root):
     def on_select(replay_data):
         selected_replay["data"] = replay_data
         toplevel.destroy()
+        root.quit()
 
     # Use the globally loaded icon
     pil_icon = dependencies.get_global_icon_pil()
@@ -123,12 +124,24 @@ def start(root):
     toplevel.lift()
     toplevel.focus_force()
     
-    while toplevel.winfo_exists():
-        try:
-            root.update_idletasks()
-            root.update()
-        except:
-            break
-        time.sleep(0.01)
+    # Linux responsiveness fix
+    toplevel.wait_visibility()
+    toplevel.grab_set()
+    
+    def on_close():
+        toplevel.destroy()
+        root.quit()
+
+    toplevel.protocol("WM_DELETE_WINDOW", on_close)
+    
+    # Update button command
+    for child in toplevel.winfo_children():
+        if isinstance(child, ctk.CTkButton) and child.cget("text") == "Close":
+            child.configure(command=on_close)
+
+    root.mainloop()
+    
+    if toplevel.winfo_exists():
+        toplevel.destroy()
 
     return selected_replay["data"]
