@@ -19,4 +19,4 @@ If `pygame`, `pillow` and `customtkinter` aren't already installed, the script w
 
 To download the latest stable version, go to the [Releases](https://github.com/Pavle012/Skakavi-krompir/releases) page and download the latest release.
 
-Want to download the latest alpha version? [How to download the latest alpha](https://github.com/Pavle012/Skakavi-krompir/wiki/How-to-download-the-latest-alpha)
+Want to download the latest alpha version? [Nightly.link]([https://github.com/Pavle012/Skakavi-krompir/wiki/How-to-download-the-latest-alpha](https://nightly.link/Pavle012/Skakavi-krompir/workflows/buildalpha/main?preview))
