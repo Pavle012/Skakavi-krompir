@@ -193,11 +193,12 @@ def trigger_on_lose_screen(window):
         except Exception as e:
             print(f"Error in on_lose_screen hook: {e}")
 
-def trigger_on_settings(window):
-    """Execute on_settings hooks, passing the window object."""
+def trigger_on_settings(settings_defs):
+    """Execute on_settings hooks, passing the settings_defs list.
+    Mods may append custom setting dicts to settings_defs."""
     for func in _hooks["on_settings"]:
         try:
-            func(window)
+            func(settings_defs)
         except Exception as e:
             print(f"Error in on_settings hook: {e}")
 

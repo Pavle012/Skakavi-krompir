@@ -48,7 +48,7 @@ import particles
 import powerups
 import options
 import multiplayer
-import customtkinter as ctk
+import pygame_ui
 from typing import Optional
 
 paused = False  # initialize before use because of type checking
@@ -536,7 +536,7 @@ def appendScore(score):
         f.write(f"{score}\n")
 
 def run_ui_overlay(title, info_lines, button_defs, title_color=(255, 255, 255), hook_func=None, on_esc=None, on_enter=None, per_frame_callback=None):
-    global WIDTH, HEIGHT, screen, clock, root
+    global screen, WIDTH, HEIGHT, clock
     
     if hook_func:
         hook_func(None)
@@ -624,7 +624,7 @@ def show_lose_screen():
     def on_restart(): return "restart"
     def on_exit(): return "exit"
     def on_leaderboard():
-        scores.start_public(root)
+        scores.start_public()
         return None
     def on_save_replay():
         replays.save_replay(current_seed, current_recording, points, name, replay_config)
@@ -680,14 +680,14 @@ def show_pause_screen():
     def on_resume(): return "resume"
     def on_exit(): return "exit"
     def on_scores():
-        scores.start(root)
+        scores.start()
         return None
     def on_leaderboard():
-        scores.start_public(root)
+        scores.start_public()
         return None
     def on_settings():
         import options
-        options.start(root)
+        options.start()
         return None
     def on_update():
         import updater
@@ -797,64 +797,11 @@ def show_lobby_screen(client, is_admin):
         if res: return res
 
 def get_text_input(title, text):
-    global root
-    # Create a small modal-like window without the strict 'grab_set' that fails on some Linux distros
-    input_window = ctk.CTkToplevel(root)
-    input_window.title(title)
-    input_window.geometry("300x150")
-    input_window.attributes("-topmost", True)
-    
-    # Position it near the center of the screen
-    input_window.update_idletasks()
-    
-    result = {"value": None}
-    
-    label = ctk.CTkLabel(input_window, text=text)
-    label.pack(pady=10)
-    
-    entry = ctk.CTkEntry(input_window)
-    entry.pack(pady=5)
-    entry.focus_set()
-    
-    def on_submit():
-        result["value"] = entry.get()
-        input_window.destroy()
-
-    btn = ctk.CTkButton(input_window, text="OK", command=on_submit)
-    btn.pack(pady=10)
-    
-    input_window.bind("<Return>", lambda e: on_submit())
-    input_window.bind("<Escape>", lambda e: input_window.destroy())
-    
-    input_window.lift()
-    input_window.focus_force()
-    
-    # Safely try to grab focus only when mapped
-    def try_grab():
-        try:
-            if input_window.state() == "normal":
-                input_window.grab_set()
-            else:
-                input_window.after(100, try_grab)
-        except Exception: # Also catch TclError safely without explicit import
-            input_window.after(100, try_grab)
-            
-    input_window.after(100, try_grab)
-    
-    # Custom wait loop to ensure responsiveness on all platforms
-    while input_window.winfo_exists():
-        try:
-            root.update_idletasks()
-            root.update()
-        except:
-            break
-        # Small sleep to be CPU friendly while waiting for modal input
-        time.sleep(0.01)
-        
-    return result["value"]
+    """Blocking pygame text-input dialog."""
+    return pygame_ui.draw_text_input(title, text)
 
 def handle_multiplayer():
-    global name, root, mp_client, mp_server
+    global name, mp_client, mp_server
     
     while True:
         choice = show_multiplayer_menu()
@@ -904,23 +851,23 @@ def show_main_menu():
     def on_start(): return "start"
     def on_exit(): return "exit"
     def on_settings():
-        options.start(root)
+        options.start()
         return None
     def on_scores():
-        scores.start(root)
+        scores.start()
         return None
     def on_public_leaderboard():
-        scores.start_public(root)
+        scores.start_public()
         return None
     def on_replays():
-        replay_data = replays.start(root)
+        replay_data = replays.start()
         if replay_data:
             return ("replay", replay_data)
         return None
     def on_multiplayer():
         return "multiplayer"
     def on_achievements():
-        achievements.show_achievements_gui(root)
+        achievements.show_achievements_gui()
         return None
 
     button_defs = [
@@ -948,18 +895,12 @@ def show_main_menu():
 ##################### Init #####################
 ################################################
 
-import customtkinter as ctk
-
-# Create a root window but don't withdraw yet - namecheck will handle it
-root = ctk.CTk()
-root.withdraw() # Start withdrawn, namecheck will deiconify if needed
-
 # 1. Get Name FIRST - Before Pygame Init
 rememberName = getSettings("rememberName") == "True"
 if rememberName:
     name = getSettings("name")
 else:
-    name = namecheck.getname(root)
+    name = namecheck.getname()
 
 # 2. Initialize Pygame AFTER Name Prompt
 HEIGHT = 600
