@@ -829,9 +829,8 @@ def get_text_input(title, text):
     input_window.lift()
     input_window.focus_force()
     
-    # Ensure modal behavior on Linux/Wayland
-    input_window.wait_visibility()
-    input_window.grab_set()
+    # Ensure modal behavior without blocking updates
+    input_window.after(100, input_window.grab_set)
     
     # Custom wait loop to ensure responsiveness on all platforms
     while input_window.winfo_exists():

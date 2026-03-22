@@ -18,9 +18,8 @@ def getname(root):
     toplevel.transient(root)
     toplevel.attributes("-topmost", True)
     
-    # We need to wait for it to be mapped before grab_set
-    toplevel.wait_visibility()
-    toplevel.grab_set()
+    # Use after to avoid blocking before mainloop
+    toplevel.after(100, toplevel.grab_set)
     
     def retuna():
         global retun
