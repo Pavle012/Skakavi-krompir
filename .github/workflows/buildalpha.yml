@@ -104,6 +104,8 @@ jobs:
           APP_ID="io.github.skakavikrompir"
           VERSION="0.0.0-alpha-$(git rev-parse --short HEAD)"
           
+          python -c "from PIL import Image; Image.open('assets/potato.png').resize((256, 256)).save('potato-256.png')"
+          
           cat <<FLATPAK_EOF > ${APP_ID}.yml
           app-id: ${APP_ID}
           runtime: org.freedesktop.Platform
@@ -121,14 +123,14 @@ jobs:
               buildsystem: simple
               build-commands:
                 - install -D game /app/bin/game
-                - install -D -m 644 potato.png /app/share/icons/hicolor/256x256/apps/${APP_ID}.png
+                - install -D -m 644 potato-256.png /app/share/icons/hicolor/256x256/apps/${APP_ID}.png
               sources:
                 - type: file
                   path: dist/game
                   dest-filename: game
                 - type: file
-                  path: assets/potato.png
-                  dest-filename: potato.png
+                  path: potato-256.png
+                  dest-filename: potato-256.png
           FLATPAK_EOF
           
           flatpak-builder --user --repo=repo --force-clean build-dir ${APP_ID}.yml
