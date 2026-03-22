@@ -93,6 +93,47 @@ jobs:
           # Build the .deb package. Output directly to dist folder.
           dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_amd64.deb
 
+      - name: Create Flatpak package on Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
+          
+          APP_ID="io.github.skakavikrompir"
+          VERSION="0.0.0-alpha-$(git rev-parse --short HEAD)"
+          
+          cat <<FLATPAK_EOF > ${APP_ID}.yml
+          app-id: ${APP_ID}
+          runtime: org.freedesktop.Platform
+          runtime-version: '23.08'
+          sdk: org.freedesktop.Sdk
+          command: game
+          finish-args:
+            - --share=ipc
+            - --socket=x11
+            - --socket=wayland
+            - --device=dri
+            - --socket=pulseaudio
+          modules:
+            - name: game
+              buildsystem: simple
+              build-commands:
+                - install -D game /app/bin/game
+                - install -D -m 644 potato.png /app/share/icons/hicolor/256x256/apps/${APP_ID}.png
+              sources:
+                - type: file
+                  path: dist/game
+                  dest-filename: game
+                - type: file
+                  path: assets/potato.png
+                  dest-filename: potato.png
+          FLATPAK_EOF
+          
+          flatpak-builder --user --repo=repo --force-clean build-dir ${APP_ID}.yml
+          flatpak build-bundle repo dist/skakavi-krompir-alpha_${VERSION}_amd64.flatpak ${APP_ID}
+
       - name: Upload artifact - Windows
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
@@ -100,9 +141,12 @@ jobs:
           name: game.exe
           path: dist/game.exe
 
-      - name: Upload artifact - Linux .deb
+      - name: Upload artifacts - Linux
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: skakavi-krompir-alpha-deb
-          path: dist/skakavi-krompir-alpha_*.deb
+          name: skakavi-krompir-alpha-linux-packages
+          path: |
+            dist/Skakavi-Krompir-Linux
+            dist/skakavi-krompir-alpha_*.deb
+            dist/skakavi-krompir-alpha_*.flatpak

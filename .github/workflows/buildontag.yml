@@ -90,6 +90,48 @@ jobs:
           # Build the .deb package. Output directly to dist folder.
           dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_amd64.deb
 
+      - name: Create Flatpak package on Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
+          
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
+          APP_ID="io.github.skakavikrompir"
+          
+          cat <<FLATPAK_EOF > ${APP_ID}.yml
+          app-id: ${APP_ID}
+          runtime: org.freedesktop.Platform
+          runtime-version: '23.08'
+          sdk: org.freedesktop.Sdk
+          command: Skakavi-Krompir-Linux
+          finish-args:
+            - --share=ipc
+            - --socket=x11
+            - --socket=wayland
+            - --device=dri
+            - --socket=pulseaudio
+          modules:
+            - name: game
+              buildsystem: simple
+              build-commands:
+                - install -D Skakavi-Krompir-Linux /app/bin/Skakavi-Krompir-Linux
+                - install -D -m 644 potato.png /app/share/icons/hicolor/256x256/apps/${APP_ID}.png
+              sources:
+                - type: file
+                  path: dist/Skakavi-Krompir-Linux
+                  dest-filename: Skakavi-Krompir-Linux
+                - type: file
+                  path: assets/potato.png
+                  dest-filename: potato.png
+          FLATPAK_EOF
+          
+          flatpak-builder --user --repo=repo --force-clean build-dir ${APP_ID}.yml
+          flatpak build-bundle repo dist/Skakavi-Krompir-Linux_${VERSION}_amd64.flatpak ${APP_ID}
+
       - uses: actions/upload-artifact@v4
         with:
           name: game-${{ matrix.os }}
