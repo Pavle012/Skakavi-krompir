@@ -123,7 +123,6 @@ def ensure_installed(package_name, import_name=None):
 
 
 def checkifdepend():
-    ensure_installed("customtkinter")
     ensure_installed("pygame")
     ensure_installed("pillow", "PIL")
     ensure_installed("requests")

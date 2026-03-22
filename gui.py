@@ -1,14 +1,10 @@
-import customtkinter as ctk
 import scores as scs
 import modloader
 import options
 import dependencies
-from PIL import Image, ImageTk
 import os
-import replays
-returncode = "error"
 
-# lose_screen has been moved to main.py using Pygame
+returncode = "error"
 
 
 def setSettings(key, newValue):

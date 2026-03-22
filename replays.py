@@ -1,9 +1,14 @@
+"""
+replays.py  —  Replay save/load/display as pygame overlay.
+No tkinter/customtkinter required.
+"""
+
 import os
 import json
 import time
-import customtkinter as ctk
 import dependencies
-from PIL import Image, ImageTk
+import pygame_ui
+
 
 def get_replays_dir():
     """Returns the path to the replays directory, creating it if it doesn't exist."""
@@ -12,33 +17,35 @@ def get_replays_dir():
         os.makedirs(replays_dir)
     return replays_dir
 
+
 def save_replay(seed, frames, score, name, config):
     """Saves replay data as a JSON file."""
     replays_dir = get_replays_dir()
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     filename = f"replay_{timestamp}_{score}.json"
     filepath = os.path.join(replays_dir, filename)
-    
+
     data = {
         "seed": seed,
         "score": score,
         "name": name,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "config": config,
-        "frames": frames
+        "frames": frames,
     }
-    
+
     with open(filepath, "w") as f:
         json.dump(data, f)
     return filename
 
+
 def list_replays():
-    """Returns a list of saved replay files with metadata."""
+    """Returns a list of saved replay files with metadata, newest first."""
     replays_dir = get_replays_dir()
     replays = []
     if not os.path.exists(replays_dir):
         return []
-    
+
     for filename in os.listdir(replays_dir):
         if filename.endswith(".json"):
             filepath = os.path.join(replays_dir, filename)
@@ -50,109 +57,93 @@ def list_replays():
                         "name": data.get("name", "Unknown"),
                         "score": data.get("score", 0),
                         "timestamp": data.get("timestamp", "Unknown"),
-                        "data": data
+                        "data": data,
                     })
             except Exception as e:
                 print(f"Error loading replay {filename}: {e}")
-    
-    # Sort by timestamp descending
+
     replays.sort(key=lambda x: x["timestamp"], reverse=True)
     return replays
 
-def start(root):
-    """Displays a dialog to pick a replay. Returns the selected replay data or None."""
-    toplevel = ctk.CTkToplevel(root)
-    toplevel.title("Saved Replays")
-    toplevel.geometry("500x500")
-    
-    selected_replay = {"data": None}
 
-    def on_select(replay_data):
-        selected_replay["data"] = replay_data
-        toplevel.destroy()
-        root.quit()
+def _copy_to_clipboard(text):
+    """Try to copy text to clipboard; silently fail if unavailable."""
+    try:
+        import pyperclip
+        pyperclip.copy(text)
+        print("Copied to clipboard.")
+        return True
+    except ImportError:
+        pass
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["xclip", "-selection", "clipboard"],
+            input=text.encode(),
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            print("Copied to clipboard via xclip.")
+            return True
+    except Exception:
+        pass
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["xsel", "--clipboard", "--input"],
+            input=text.encode(),
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            print("Copied to clipboard via xsel.")
+            return True
+    except Exception:
+        pass
+    print("Could not copy to clipboard (no pyperclip / xclip / xsel found).")
+    return False
 
-    # Use the globally loaded icon
-    pil_icon = dependencies.get_global_icon_pil()
-    if pil_icon:
-        icon_photo = ImageTk.PhotoImage(pil_icon)
-        toplevel._icon_photo_ref = icon_photo
-        toplevel.iconphoto(True, icon_photo)
 
-    ctk.CTkLabel(toplevel, text="Saved Replays", font=(dependencies.get_font_path(), 24)).pack(pady=10)
-
-    scrollable_frame = ctk.CTkScrollableFrame(toplevel, width=450, height=350)
-    scrollable_frame.pack(pady=10, padx=10, fill="both", expand=True)
-
+def start():
+    """
+    Displays a pygame dialog to pick a replay.
+    Returns the selected replay data dict, or None.
+    """
     replays_list = list_replays()
 
-    if not replays_list:
-        ctk.CTkLabel(scrollable_frame, text="No replays found.", font=(dependencies.get_font_path(), 14)).pack(pady=20)
-    else:
-        for replay in replays_list:
-            frame = ctk.CTkFrame(scrollable_frame)
-            frame.pack(pady=5, padx=5, fill="x")
-            
-            label_text = f"{replay['score']} pts — {replay['name']} ({replay['timestamp']})"
-            ctk.CTkLabel(frame, text=label_text, font=(dependencies.get_font_path(), 12)).pack(side="left", padx=10, pady=5)
-            
-            def copy_to_clipboard(data):
-                root.clipboard_clear()
-                root.clipboard_append(json.dumps(data))
-                root.update() # now it stays on the clipboard
-                
-            ctk.CTkButton(
-                frame, 
-                text="Copy", 
-                width=60, 
-                fg_color="#34495e",
-                hover_color="#2c3e50",
-                command=lambda r=replay['data']: copy_to_clipboard(r),
-                font=(dependencies.get_font_path(), 10)
-            ).pack(side="right", padx=5, pady=5)
+    rows = [
+        (str(r["score"]), r["name"], r["timestamp"]) for r in replays_list
+    ]
 
-            ctk.CTkButton(
-                frame, 
-                text="Watch", 
-                width=80, 
-                command=lambda r=replay['data']: on_select(r),
-                font=(dependencies.get_font_path(), 12)
-            ).pack(side="right", padx=5, pady=5)
+    columns = [
+        ("Score", 0.20),
+        ("Name", 0.30),
+        ("Timestamp", 0.50),
+    ]
 
-    ctk.CTkButton(toplevel, text="Close", command=toplevel.destroy, font=(dependencies.get_font_path(), 14)).pack(pady=10)
+    action_buttons = [
+        {"label": "Watch", "color": (46, 160, 80), "hover": (36, 130, 60), "value": "watch"},
+        {"label": "Copy",  "color": (52, 80, 160),  "hover": (40, 60, 130), "value": "copy"},
+    ]
 
-    toplevel.lift()
-    toplevel.focus_force()
-    
-    # Linux responsiveness fix
-    def try_grab_top():
+    extra_info = [] if replays_list else ["No replays saved yet."]
 
-        try:
+    while True:
+        result = pygame_ui.draw_scrollable_list(
+            title="Saved Replays",
+            rows=rows,
+            columns=columns,
+            action_buttons_per_row=action_buttons if replays_list else [],
+            extra_info=extra_info,
+        )
 
-            if toplevel.state() == "normal": toplevel.grab_set()
+        if result is None:
+            return None  # closed / cancelled
 
-            else: toplevel.after(100, try_grab_top)
+        row_idx, btn_value = result
+        replay = replays_list[row_idx]
 
-        except Exception:
-
-            toplevel.after(100, try_grab_top)
-
-    toplevel.after(100, try_grab_top)
-    
-    def on_close():
-        toplevel.destroy()
-        root.quit()
-
-    toplevel.protocol("WM_DELETE_WINDOW", on_close)
-    
-    # Update button command
-    for child in toplevel.winfo_children():
-        if isinstance(child, ctk.CTkButton) and child.cget("text") == "Close":
-            child.configure(command=on_close)
-
-    root.mainloop()
-    
-    if toplevel.winfo_exists():
-        toplevel.destroy()
-
-    return selected_replay["data"]
+        if btn_value == "watch":
+            return replay["data"]
+        elif btn_value == "copy":
+            _copy_to_clipboard(json.dumps(replay["data"]))
+            # Stay on list after copy

@@ -1,13 +1,18 @@
-import customtkinter as ctk
+"""
+scores.py  —  Local and public leaderboard rendered as pygame overlays.
+No tkinter/customtkinter required.
+"""
+
 import os
 import ast
 import dependencies
-from PIL import Image, ImageTk
 import requests
+import pygame_ui
 
 # --- Public Leaderboard Config ---
 SERVER_URL = "https://dragon-honest-directly.ngrok-free.app"
 SECRET_KEY = "GhrMYxwtogB8"
+
 
 def submit_score(player, score):
     """Submits a score to the public leaderboard."""
@@ -19,6 +24,7 @@ def submit_score(player, score):
     except requests.exceptions.RequestException as e:
         print("Error submitting score:", e)
 
+
 def get_leaderboard(limit=15):
     """Fetches the public leaderboard."""
     try:
@@ -29,11 +35,9 @@ def get_leaderboard(limit=15):
         print("Error fetching leaderboard:", e)
         return None
 
-def start(root):
-    toplevel = ctk.CTkToplevel(root)
-    toplevel.title("Local Scores")
-    toplevel.geometry("500x500")
 
+def start():
+    """Display local scores as a pygame overlay."""
     scores_path = os.path.join(dependencies.get_user_data_dir(), "scores.txt")
     if not os.path.exists(scores_path):
         open(scores_path, "w").close()
@@ -50,12 +54,6 @@ def start(root):
             except (ValueError, SyntaxError):
                 pass
 
-    pil_icon = dependencies.get_global_icon_pil()
-    if pil_icon:
-        icon_photo = ImageTk.PhotoImage(pil_icon)
-        toplevel._icon_photo_ref = icon_photo
-        toplevel.iconphoto(True, icon_photo)
-
     if scores:
         top_idx = scores.index(max(scores))
         top_score = scores[top_idx]
@@ -64,144 +62,70 @@ def start(root):
     else:
         top_score, top_name, top_date = 0, "Nobody", "the creation of the project"
 
-    ctk.CTkLabel(toplevel, text="Local Scores", font=(dependencies.get_font_path(), 24)).pack(pady=10)
-    ctk.CTkLabel(
-        toplevel,
-        text=f"Top Score: {top_score} by {top_name} at {top_date}",
-        font=(dependencies.get_font_path(), 14)
-    ).pack(pady=5)
+    extra_info = [f"Top: {top_score} by {top_name} on {top_date}"]
 
-    for s, n, d in sorted(zip(scores, names, dates), reverse=True):
-        ctk.CTkLabel(toplevel, text=f"{s} — {n} ({d})", font=(dependencies.get_font_path(), 12)).pack()
+    # Build rows sorted by score descending
+    sorted_entries = sorted(zip(scores, names, dates), reverse=True)
+    rows = [(str(s), n, d) for s, n, d in sorted_entries]
 
-    ctk.CTkButton(
-        toplevel,
-        text="Public Leaderboard",
-        command=lambda: start_public(root),
-        font=(dependencies.get_font_path(), 12)
-    ).pack(pady=10)
+    columns = [
+        ("Score", 0.25),
+        ("Name", 0.35),
+        ("Date", 0.40),
+    ]
 
-    toplevel.lift()
-    toplevel.focus_force()
-    
-    # Linux responsiveness fix
-    def try_grab_top():
+    # Extra button to open public leaderboard — we use the return value
+    action_buttons = [
+        {"label": "Public", "color": (52, 100, 180), "hover": (40, 80, 150), "value": "public"}
+    ]
 
-        try:
+    result = pygame_ui.draw_scrollable_list(
+        title="Local Scores",
+        rows=rows,
+        columns=columns,
+        action_buttons_per_row=action_buttons if rows else [],
+        close_label="Close",
+        extra_info=extra_info,
+    )
 
-            if toplevel.state() == "normal": toplevel.grab_set()
+    # If the user clicked "Public" on any row, open the public leaderboard
+    if result is not None:
+        _row_idx, btn_value = result
+        if btn_value == "public":
+            start_public()
 
-            else: toplevel.after(100, try_grab_top)
+    # Regardless, show public leaderboard button on empty list too
+    if not rows:
+        # No scores yet; offer a shortcut
+        screen = pygame_ui._get_screen()
+        pygame_ui.draw_scrollable_list(
+            title="Local Scores",
+            rows=[],
+            columns=[("Score", 0.33), ("Name", 0.33), ("Date", 0.34)],
+            extra_info=["No local scores yet!", "Play a game to record your first score."],
+        )
 
-        except Exception:
 
-            toplevel.after(100, try_grab_top)
-
-    toplevel.after(100, try_grab_top)
-
-    def close_scores():
-        toplevel.destroy()
-        root.quit()
-
-    ctk.CTkButton(toplevel, text="Close", command=close_scores, font=(dependencies.get_font_path(), 12)).pack(pady=5)
-
-    toplevel.protocol("WM_DELETE_WINDOW", close_scores)
-    toplevel.lift()
-    toplevel.focus_force()
-    
-    # Linux responsiveness fix
-    def try_grab_top():
-
-        try:
-
-            if toplevel.state() == "normal": toplevel.grab_set()
-
-            else: toplevel.after(100, try_grab_top)
-
-        except Exception:
-
-            toplevel.after(100, try_grab_top)
-
-    toplevel.after(100, try_grab_top)
-
-    root.mainloop()
-
-    if toplevel.winfo_exists():
-        toplevel.destroy()
-
-def start_public(root):
-    """Displays the public leaderboard."""
-    public_toplevel = ctk.CTkToplevel(root)
-    public_toplevel.title("Public Leaderboard")
-    public_toplevel.geometry("500x500")
-
-    pil_icon = dependencies.get_global_icon_pil()
-    if pil_icon:
-        icon_photo = ImageTk.PhotoImage(pil_icon)
-        public_toplevel._icon_photo_ref = icon_photo
-        public_toplevel.iconphoto(True, icon_photo)
-
-    ctk.CTkLabel(public_toplevel, text="Public Leaderboard", font=(dependencies.get_font_path(), 24)).pack(pady=10)
-
+def start_public():
+    """Display the public leaderboard as a pygame overlay."""
     leaderboard_data = get_leaderboard()
 
     if leaderboard_data:
-        # Sort by score descending
-        sorted_leaderboard = sorted(leaderboard_data, key=lambda x: x['score'], reverse=True)
-        
-        for entry in sorted_leaderboard:
-            ctk.CTkLabel(
-                public_toplevel,
-                text=f"{entry['score']} — {entry['player']}",
-                font=(dependencies.get_font_path(), 12)
-            ).pack()
+        sorted_lb = sorted(leaderboard_data, key=lambda x: x["score"], reverse=True)
+        rows = [(str(e["score"]), e["player"]) for e in sorted_lb]
+        extra = []
     else:
-        ctk.CTkLabel(public_toplevel, text="Could not fetch leaderboard.", font=(dependencies.get_font_path(), 12)).pack()
+        rows = []
+        extra = ["Could not fetch leaderboard. Check your connection."]
 
-    public_toplevel.lift()
-    public_toplevel.focus_force()
-    
-    # Linux responsiveness fix
-    def try_grab_pub():
+    columns = [
+        ("Score", 0.35),
+        ("Player", 0.65),
+    ]
 
-        try:
-
-            if public_toplevel.state() == "normal": public_toplevel.grab_set()
-
-            else: public_toplevel.after(100, try_grab_pub)
-
-        except Exception:
-
-            public_toplevel.after(100, try_grab_pub)
-
-    public_toplevel.after(100, try_grab_pub)
-
-    def close_public():
-        public_toplevel.destroy()
-        root.quit()
-
-    ctk.CTkButton(public_toplevel, text="Close", command=close_public, font=(dependencies.get_font_path(), 12)).pack(pady=5)
-
-    public_toplevel.protocol("WM_DELETE_WINDOW", close_public)
-    public_toplevel.lift()
-    public_toplevel.focus_force()
-    
-    # Linux responsiveness fix
-    def try_grab_pub():
-
-        try:
-
-            if public_toplevel.state() == "normal": public_toplevel.grab_set()
-
-            else: public_toplevel.after(100, try_grab_pub)
-
-        except Exception:
-
-            public_toplevel.after(100, try_grab_pub)
-
-    public_toplevel.after(100, try_grab_pub)
-
-    root.mainloop()
-
-    if public_toplevel.winfo_exists():
-        public_toplevel.destroy()
+    pygame_ui.draw_scrollable_list(
+        title="Public Leaderboard",
+        rows=rows,
+        columns=columns,
+        extra_info=extra,
+    )
