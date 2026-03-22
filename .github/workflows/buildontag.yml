@@ -11,7 +11,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-22.04]
+        os: [windows-latest, ubuntu-22.04, ubuntu-22.04-arm]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -53,6 +53,7 @@ jobs:
           APP_NAME="Skakavi Krompir"
           APP_ID="skakavi-krompir"
           DEBIAN_PACKAGE_DIR="debian_package"
+          ARCH=$(dpkg --print-architecture)
           
           # Create directory structure
           mkdir -p ${DEBIAN_PACKAGE_DIR}/DEBIAN
@@ -67,7 +68,7 @@ jobs:
           cat <<EOF > ${DEBIAN_PACKAGE_DIR}/DEBIAN/control
           Package: ${APP_ID}
           Version: ${VERSION}
-          Architecture: amd64
+          Architecture: ${ARCH}
           Maintainer: user <user@example.com>
           Description: A Flappy Bird-like game.
            Skakavi Krompir is a simple game where you control a potato and try to avoid obstacles.
@@ -88,7 +89,7 @@ jobs:
           cp assets/potato.png ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps/${APP_ID}.png
 
           # Build the .deb package. Output directly to dist folder.
-          dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_amd64.deb
+          dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_${ARCH}.deb
 
       - name: Create Flatpak package on Linux
         if: runner.os == 'Linux'
@@ -101,6 +102,7 @@ jobs:
           VERSION=${{ github.ref_name }}
           VERSION=${VERSION#v}
           APP_ID="io.github.skakavikrompir"
+          ARCH=$(dpkg --print-architecture)
           
           python -c "from PIL import Image; Image.open('assets/potato.png').resize((256, 256)).save('potato-256.png')"
           
@@ -132,7 +134,7 @@ jobs:
           FLATPAK_EOF
           
           flatpak-builder --user --repo=repo --force-clean build-dir ${APP_ID}.yml
-          flatpak build-bundle repo dist/Skakavi-Krompir-Linux_${VERSION}_amd64.flatpak ${APP_ID}
+          flatpak build-bundle repo dist/Skakavi-Krompir-Linux_${VERSION}_${ARCH}.flatpak ${APP_ID}
 
       - uses: actions/upload-artifact@v4
         with:

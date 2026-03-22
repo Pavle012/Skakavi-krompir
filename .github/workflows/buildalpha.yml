@@ -9,7 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-22.04]
+        os: [windows-latest, ubuntu-22.04, ubuntu-22.04-arm]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -56,6 +56,7 @@ jobs:
           APP_NAME="Skakavi Krompir (Alpha)"
           APP_ID="skakavi-krompir-alpha"
           DEBIAN_PACKAGE_DIR="debian_package"
+          ARCH=$(dpkg --print-architecture)
           
           # Create directory structure
           mkdir -p ${DEBIAN_PACKAGE_DIR}/DEBIAN
@@ -70,7 +71,7 @@ jobs:
           cat <<EOF > ${DEBIAN_PACKAGE_DIR}/DEBIAN/control
           Package: ${APP_ID}
           Version: ${VERSION}
-          Architecture: amd64
+          Architecture: ${ARCH}
           Maintainer: user <user@example.com>
           Description: A Flappy Bird-like game (Alpha build).
            Skakavi Krompir is a simple game where you control a potato and try to avoid obstacles.
@@ -91,7 +92,7 @@ jobs:
           cp assets/potato.png ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps/skakavi-krompir.png
 
           # Build the .deb package. Output directly to dist folder.
-          dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_amd64.deb
+          dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_${ARCH}.deb
 
       - name: Create Flatpak package on Linux
         if: runner.os == 'Linux'
@@ -103,6 +104,7 @@ jobs:
           
           APP_ID="io.github.skakavikrompir"
           VERSION="0.0.0-alpha-$(git rev-parse --short HEAD)"
+          ARCH=$(dpkg --print-architecture)
           
           python -c "from PIL import Image; Image.open('assets/potato.png').resize((256, 256)).save('potato-256.png')"
           
@@ -134,7 +136,7 @@ jobs:
           FLATPAK_EOF
           
           flatpak-builder --user --repo=repo --force-clean build-dir ${APP_ID}.yml
-          flatpak build-bundle repo dist/skakavi-krompir-alpha_${VERSION}_amd64.flatpak ${APP_ID}
+          flatpak build-bundle repo dist/skakavi-krompir-alpha_${VERSION}_${ARCH}.flatpak ${APP_ID}
 
       - name: Upload artifact - Windows
         if: runner.os == 'Windows'
@@ -147,8 +149,8 @@ jobs:
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: skakavi-krompir-alpha-linux-packages
+          name: skakavi-krompir-alpha-linux-packages-${{ matrix.os }}
           path: |
-            dist/Skakavi-Krompir-Linux
+            dist/game
             dist/skakavi-krompir-alpha_*.deb
             dist/skakavi-krompir-alpha_*.flatpak
