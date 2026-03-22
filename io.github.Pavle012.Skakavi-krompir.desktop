@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Skakavi Krompir
 Exec=skakavi-krompir
-Icon=io.github.Pavle012.SkakaviKrompir
+Icon=io.github.Pavle012.Skakavi-krompir
 Type=Application
 Terminal=false
 Categories=Game;ArcadeGame;
