@@ -15,11 +15,20 @@ def getname(root):
     toplevel.geometry("300x250")
     
     # Ensure it stays on top and grabs focus
-    toplevel.transient(root)
+    # Do not use transient(root) if root is withdrawn on Wayland
     toplevel.attributes("-topmost", True)
     
-    # Use after to avoid blocking before mainloop
-    toplevel.after(100, toplevel.grab_set)
+    # Safely try to grab focus only when mapped
+    def try_grab():
+        try:
+            if toplevel.state() == "normal":
+                toplevel.grab_set()
+            else:
+                toplevel.after(100, try_grab)
+        except tkinter.TclError:
+            toplevel.after(100, try_grab)
+            
+    toplevel.after(100, try_grab)
     
     def retuna():
         global retun

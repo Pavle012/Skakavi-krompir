@@ -85,8 +85,19 @@ def start(root):
     toplevel.focus_force()
     
     # Linux responsiveness fix
-    toplevel.wait_visibility()
-    toplevel.grab_set()
+    def try_grab_top():
+
+        try:
+
+            if toplevel.state() == "normal": toplevel.grab_set()
+
+            else: toplevel.after(100, try_grab_top)
+
+        except Exception:
+
+            toplevel.after(100, try_grab_top)
+
+    toplevel.after(100, try_grab_top)
 
     def close_scores():
         toplevel.destroy()
@@ -99,8 +110,19 @@ def start(root):
     toplevel.focus_force()
     
     # Linux responsiveness fix
-    toplevel.wait_visibility()
-    toplevel.grab_set()
+    def try_grab_top():
+
+        try:
+
+            if toplevel.state() == "normal": toplevel.grab_set()
+
+            else: toplevel.after(100, try_grab_top)
+
+        except Exception:
+
+            toplevel.after(100, try_grab_top)
+
+    toplevel.after(100, try_grab_top)
 
     root.mainloop()
 
@@ -140,8 +162,19 @@ def start_public(root):
     public_toplevel.focus_force()
     
     # Linux responsiveness fix
-    public_toplevel.wait_visibility()
-    public_toplevel.grab_set()
+    def try_grab_pub():
+
+        try:
+
+            if public_toplevel.state() == "normal": public_toplevel.grab_set()
+
+            else: public_toplevel.after(100, try_grab_pub)
+
+        except Exception:
+
+            public_toplevel.after(100, try_grab_pub)
+
+    public_toplevel.after(100, try_grab_pub)
 
     def close_public():
         public_toplevel.destroy()
@@ -154,8 +187,19 @@ def start_public(root):
     public_toplevel.focus_force()
     
     # Linux responsiveness fix
-    public_toplevel.wait_visibility()
-    public_toplevel.grab_set()
+    def try_grab_pub():
+
+        try:
+
+            if public_toplevel.state() == "normal": public_toplevel.grab_set()
+
+            else: public_toplevel.after(100, try_grab_pub)
+
+        except Exception:
+
+            public_toplevel.after(100, try_grab_pub)
+
+    public_toplevel.after(100, try_grab_pub)
 
     root.mainloop()
 

@@ -829,8 +829,17 @@ def get_text_input(title, text):
     input_window.lift()
     input_window.focus_force()
     
-    # Ensure modal behavior without blocking updates
-    input_window.after(100, input_window.grab_set)
+    # Safely try to grab focus only when mapped
+    def try_grab():
+        try:
+            if input_window.state() == "normal":
+                input_window.grab_set()
+            else:
+                input_window.after(100, try_grab)
+        except Exception: # Also catch TclError safely without explicit import
+            input_window.after(100, try_grab)
+            
+    input_window.after(100, try_grab)
     
     # Custom wait loop to ensure responsiveness on all platforms
     while input_window.winfo_exists():

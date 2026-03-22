@@ -125,8 +125,19 @@ def start(root):
     toplevel.focus_force()
     
     # Linux responsiveness fix
-    toplevel.wait_visibility()
-    toplevel.grab_set()
+    def try_grab_top():
+
+        try:
+
+            if toplevel.state() == "normal": toplevel.grab_set()
+
+            else: toplevel.after(100, try_grab_top)
+
+        except Exception:
+
+            toplevel.after(100, try_grab_top)
+
+    toplevel.after(100, try_grab_top)
     
     def on_close():
         toplevel.destroy()

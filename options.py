@@ -237,8 +237,19 @@ def options(root):
     toplevel.focus_force()
     
     # Ensure modal behavior and visibility on Linux
-    toplevel.wait_visibility()
-    toplevel.grab_set()
+    def try_grab_top():
+
+        try:
+
+            if toplevel.state() == "normal": toplevel.grab_set()
+
+            else: toplevel.after(100, try_grab_top)
+
+        except Exception:
+
+            toplevel.after(100, try_grab_top)
+
+    toplevel.after(100, try_grab_top)
 
     modloader.trigger_on_settings(toplevel)
     
