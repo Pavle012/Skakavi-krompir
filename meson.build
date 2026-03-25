@@ -1,5 +1,5 @@
 project('io.github.Pavle012.Skakavi-krompir',
-  version: '2.0.3',
+  version: '2.1.1',
   meson_version: '>= 0.62.0'
 )
 
@@ -42,6 +42,11 @@ install_data('io.github.Pavle012.Skakavi-krompir.metainfo.xml', install_dir: get
 install_data('assets/io.github.Pavle012.Skakavi-krompir.png',
   install_dir: get_option('datadir') / 'icons/hicolor/256x256/apps/',
   rename: 'io.github.Pavle012.Skakavi-krompir.png'
+)
+
+# License
+install_data('LICENSE',
+  install_dir: get_option('datadir') / 'licenses' / 'io.github.Pavle012.Skakavi-krompir'
 )
 
 # Launch script generator
