@@ -58,6 +58,14 @@ jobs:
           mkdir -p dist
           mv main.bin dist/game-${ARCH}
 
+      - name: Create Swap Space for ARM64
+        if: runner.os == 'Linux' && matrix.arch == 'aarch64'
+        run: |
+          sudo fallocate -l 10G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+
       - name: Build for ARM64 (Linux)
         if: runner.os == 'Linux' && matrix.arch == 'aarch64'
         uses: uraimo/run-on-arch-action@v2
@@ -74,6 +82,8 @@ jobs:
             apt-get update
             apt-get install -y python3 python3-pip python3-tk ccache binutils git patchelf clang
           run: |
+            export CC=clang
+            export CXX=clang++
             pip3 install -r requirements.txt
             ARCH=$(dpkg --print-architecture)
             python3 -m nuitka --clang --onefile --jobs=1 --python-flag=no_docstrings --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes --lto=no main.py
