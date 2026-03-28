@@ -76,7 +76,7 @@ jobs:
           run: |
             pip3 install -r requirements.txt
             ARCH=$(dpkg --print-architecture)
-            python3 -m nuitka --onefile --jobs=$(nproc) --python-flag=no_docstrings --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes main.py
+            python3 -m nuitka --onefile --jobs=4 --python-flag=no_docstrings --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes --lto=no main.py
             mkdir -p dist
             mv main.bin dist/game-${ARCH}
             
