@@ -9,7 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-22.04, ubuntu-22.04-arm]
+        os: [windows-latest, ubuntu-22.04, ubuntu-22.04-arm64]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -45,9 +45,10 @@ jobs:
       - name: Build with Nuitka on Linux
         if: runner.os == 'Linux'
         run: |
+          ARCH=$(dpkg --print-architecture)
           python -m nuitka --onefile --jobs=$(nproc) --python-flag=no_docstrings --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes main.py
           mkdir -p dist
-          mv main.bin dist/game
+          mv main.bin dist/game-${ARCH}
 
       - name: Create .deb package on Linux
         if: runner.os == 'Linux'
@@ -65,7 +66,7 @@ jobs:
           mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps
 
           # Copy executable
-          cp dist/game ${DEBIAN_PACKAGE_DIR}/usr/local/bin/${APP_ID}
+          cp dist/game-${ARCH} ${DEBIAN_PACKAGE_DIR}/usr/local/bin/${APP_ID}
 
           # Create control file
           cat <<EOF > ${DEBIAN_PACKAGE_DIR}/DEBIAN/control
@@ -113,7 +114,7 @@ jobs:
           runtime: org.freedesktop.Platform
           runtime-version: '25.08'
           sdk: org.freedesktop.Sdk
-          command: game
+          command: game-${ARCH}
           finish-args:
             - --share=ipc
             - --socket=x11
@@ -124,12 +125,12 @@ jobs:
             - name: game
               buildsystem: simple
               build-commands:
-                - install -D game /app/bin/game
+                - install -D game-${ARCH} /app/bin/game-${ARCH}
                 - install -D -m 644 potato-256.png /app/share/icons/hicolor/256x256/apps/${APP_ID}.png
               sources:
                 - type: file
-                  path: dist/game
-                  dest-filename: game
+                  path: dist/game-${ARCH}
+                  dest-filename: game-${ARCH}
                 - type: file
                   path: potato-256.png
                   dest-filename: potato-256.png
@@ -151,6 +152,6 @@ jobs:
         with:
           name: skakavi-krompir-alpha-linux-packages-${{ matrix.os }}
           path: |
-            dist/game
+            dist/game-*
             dist/skakavi-krompir-alpha_*.deb
             dist/skakavi-krompir-alpha_*.flatpak
