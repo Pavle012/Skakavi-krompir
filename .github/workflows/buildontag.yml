@@ -69,9 +69,9 @@ jobs:
           shell: /bin/sh
           install: |
             apt-get update
-            apt-get install -y python3 python3-pip python3-tk ccache binutils
-            pip3 install -r requirements.txt
+            apt-get install -y python3 python3-pip python3-tk ccache binutils git
           run: |
+            pip3 install -r requirements.txt
             ARCH=$(dpkg --print-architecture)
             python3 -m nuitka --onefile --jobs=$(nproc) --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes main.py
             
