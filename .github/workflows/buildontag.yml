@@ -11,13 +11,20 @@ jobs:
       contents: read
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-22.04, ubuntu-22.04-arm64]
+        include:
+          - os: windows-latest
+            arch: x64
+          - os: ubuntu-latest
+            arch: x64
+          - os: ubuntu-latest
+            arch: aarch64
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
+        if: matrix.arch != 'aarch64'
         with:
           python-version: '3.11'
 
@@ -36,19 +43,74 @@ jobs:
           key: ${{ runner.os }}-nuitka-${{ hashFiles('requirements.txt') }}
 
       - run: pip install -r requirements.txt
+        if: matrix.arch != 'aarch64'
 
       - name: Build with Nuitka on Windows
         if: runner.os == 'Windows'
         run: python -m nuitka --onefile --jobs=1 --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Windows" --windows-icon-from-ico=assets/potato.ico --include-data-dir=assets=assets --assume-yes-for-downloads --enable-plugin=tk-inter --lto=no main.py
 
-      - name: Build with Nuitka on Linux
-        if: runner.os == 'Linux'
+      - name: Build with Nuitka on Linux (x64)
+        if: runner.os == 'Linux' && matrix.arch == 'x64'
         run: |
           ARCH=$(dpkg --print-architecture)
           python -m nuitka --onefile --jobs=$(nproc) --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes main.py
 
-      - name: Create .deb package on Linux
-        if: runner.os == 'Linux'
+      - name: Build for ARM64 (Linux)
+        if: runner.os == 'Linux' && matrix.arch == 'aarch64'
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: aarch64
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+          setup: |
+            mkdir -p "${PWD}/dist"
+          dockerRunArgs: |
+            --volume "${PWD}:/workspace"
+          shell: /bin/sh
+          install: |
+            apt-get update
+            apt-get install -y python3 python3-pip python3-tk ccache binutils
+            pip3 install -r requirements.txt
+          run: |
+            ARCH=$(dpkg --print-architecture)
+            python3 -m nuitka --onefile --jobs=$(nproc) --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes main.py
+            
+            VERSION=${{ github.ref_name }}
+            VERSION=${VERSION#v}
+            APP_NAME="Skakavi Krompir"
+            APP_ID="skakavi-krompir"
+            DEBIAN_PACKAGE_DIR="debian_package"
+            
+            mkdir -p ${DEBIAN_PACKAGE_DIR}/DEBIAN
+            mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/local/bin
+            mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/applications
+            mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps
+            cp dist/Skakavi-Krompir-Linux-${ARCH} ${DEBIAN_PACKAGE_DIR}/usr/local/bin/${APP_ID}
+            
+            cat <<EOF > ${DEBIAN_PACKAGE_DIR}/DEBIAN/control
+            Package: ${APP_ID}
+            Version: ${VERSION}
+            Architecture: ${ARCH}
+            Maintainer: user <user@example.com>
+            Description: A Flappy Bird-like game.
+             Skakavi Krompir is a simple game where you control a potato and try to avoid obstacles.
+            Depends: libc6 (>= 2.35)
+            EOF
+            
+            cat <<EOF > ${DEBIAN_PACKAGE_DIR}/usr/share/applications/${APP_ID}.desktop
+            [Desktop Entry]
+            Name=${APP_NAME}
+            Exec=/usr/local/bin/${APP_ID}
+            Icon=/usr/share/pixmaps/${APP_ID}.png
+            Type=Application
+            Categories=Game;
+            EOF
+            
+            cp assets/potato.png ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps/${APP_ID}.png
+            dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_${ARCH}.deb
+
+      - name: Create .deb package on Linux (x64)
+        if: runner.os == 'Linux' && matrix.arch == 'x64'
         run: |
           VERSION=${{ github.ref_name }}
           VERSION=${VERSION#v}
@@ -93,8 +155,8 @@ jobs:
           # Build the .deb package. Output directly to dist folder.
           dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_${ARCH}.deb
 
-      - name: Create Flatpak package on Linux
-        if: runner.os == 'Linux'
+      - name: Create Flatpak package on Linux (x64)
+        if: runner.os == 'Linux' && matrix.arch == 'x64'
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder
@@ -140,7 +202,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: game-${{ matrix.os }}
+          name: game-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/*
 
   release:
@@ -165,6 +227,6 @@ jobs:
         with:
           name: ${{ steps.get_tag_message.outputs.message }}
           files: |
-            dist/game-windows-latest/*
-            dist/game-ubuntu-22.04/*
-            dist/game-ubuntu-22.04-arm64/*
+            dist/game-windows-latest-x64/*
+            dist/game-ubuntu-latest-x64/*
+            dist/game-ubuntu-latest-aarch64/*
