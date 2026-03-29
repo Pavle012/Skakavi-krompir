@@ -24,8 +24,9 @@ def is_compiled():
     is_frozen = getattr(sys, "frozen", False)
     # Check for Nuitka
     is_nuitka = "__compiled__" in globals()
-    # Check for Android
-    is_android = 'ANDROID_ARGUMENT' in os.environ or 'ANDROID_PRIVATE' in os.environ
+    # Check for Android (only set when running on device, not during build)
+    # ANDROID_APP_PATH is set during runtime in Buildozer APKs
+    is_android = 'ANDROID_APP_PATH' in os.environ
     
     return is_frozen or is_nuitka or is_android
 

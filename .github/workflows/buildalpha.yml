@@ -88,7 +88,7 @@ jobs:
             export CXX=clang++
             pip3 install -r requirements.txt
             ARCH=$(dpkg --print-architecture)
-            python3 -m nuitka --clang --onefile --jobs=1 --python-flag=no_docstrings --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes --lto=no original/main.py
+            python3 -m nuitka --clang --onefile --jobs=1 --python-flag=no_docstrings --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes --lto=no --nofollow-import-to=urllib3 original/main.py
             mkdir -p dist
             mv main.bin dist/game-${ARCH}
             
