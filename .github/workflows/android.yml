@@ -61,6 +61,7 @@ jobs:
             m4 \
             autoconf \
             automake \
+            autoconf-archive \
             pkg-config \
             ant \
             openjdk-17-jdk \
@@ -83,8 +84,11 @@ jobs:
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          export ACLOCAL_PATH="/usr/share/aclocal"
-          export M4PATH="/usr/share/aclocal"
+          # Set up environment for autotools
+          export ACLOCAL_PATH="/usr/share/aclocal:${ACLOCAL_PATH:-}"
+          export LIBTOOLIZE_FLAGS="--copy --force --install"
+          export AUTOCONF_FLAGS="--force"
+          export AUTOMAKE_FLAGS="--copy --add-missing --force-missing"
           buildozer -v android debug
         env:
           ACCEPT_SDK_LICENSE: "yes"
