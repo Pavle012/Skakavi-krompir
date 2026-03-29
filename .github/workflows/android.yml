@@ -86,9 +86,45 @@ jobs:
           export PATH=$PATH:$HOME/.local/bin
           # Set up environment for autotools
           export ACLOCAL_PATH="/usr/share/aclocal:${ACLOCAL_PATH:-}"
-          export LIBTOOLIZE_FLAGS="--copy --force --install"
-          export AUTOCONF_FLAGS="--force"
-          export AUTOMAKE_FLAGS="--copy --add-missing --force-missing"
+          
+          # Add a wrapper for libtoolize that patches in the missing macro
+          mkdir -p /tmp/bin
+          cat > /tmp/bin/libtoolize << 'EOF'
+          #!/bin/bash
+          /usr/bin/libtoolize "$@"
+          
+          # After libtoolize runs, patch in the missing LT_SYS_SYMBOL_USCORE macro if needed
+          if [ -d "m4" ] && ! grep -q "LT_SYS_SYMBOL_USCORE" m4/libtool.m4 2>/dev/null; then
+            cat >> m4/libtool.m4 << 'MACRO'
+          
+          # Patch for missing LT_SYS_SYMBOL_USCORE macro (removed in newer libtool)
+          m4_ifndef([LT_SYS_SYMBOL_USCORE],
+          [AC_DEFUN([LT_SYS_SYMBOL_USCORE],
+          [AC_CACHE_CHECK([whether the symbol leading character is an underscore], lt_cv_sys_symbol_underscore,
+          [lt_cv_sys_symbol_underscore=no
+          cat > conftest.$ac_ext <<_LT_EOF
+          int
+          main ()
+          {
+            /* By default we assume the symbol leading character is an underscore. */
+            extern int foo (void) __asm__ ("_foo");
+            int main (void) { return foo (); }
+            _LT_EOF
+            if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeext}; then
+              lt_cv_sys_symbol_underscore=yes
+            fi
+            rm -f conftest*
+          ])
+          SYS_SYMBOL_UNDERSCORE=$lt_cv_sys_symbol_underscore
+          AC_SUBST([SYS_SYMBOL_UNDERSCORE])
+          ])
+          ])
+          MACRO
+          fi
+          EOF
+          chmod +x /tmp/bin/libtoolize
+          export PATH="/tmp/bin:$PATH"
+          
           buildozer -v android debug
         env:
           ACCEPT_SDK_LICENSE: "yes"
