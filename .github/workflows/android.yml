@@ -78,8 +78,9 @@ jobs:
 
       - name: Install Buildozer
         run: |
-          pip install --user --upgrade buildozer
-          pip install --user --upgrade Cython==0.29.33
+          pip install --user buildozer==1.5.0
+          pip install --user Cython==0.29.33
+          pip install --user --upgrade p4a
 
       - name: Build with Buildozer
         run: |
@@ -121,6 +122,8 @@ jobs:
           buildozer -v android debug
         env:
           ACCEPT_SDK_LICENSE: "yes"
+          NDK_API: "21"
+          ANDROID_API: "33"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
