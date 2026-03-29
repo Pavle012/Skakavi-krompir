@@ -61,7 +61,7 @@ jobs:
             m4 \
             autoconf \
             automake \
-            libtool \
+            libtoolize \
             pkg-config \
             ant \
             openjdk-17-jdk \
