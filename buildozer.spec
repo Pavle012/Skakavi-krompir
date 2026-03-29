@@ -119,7 +119,7 @@ android.entrypoint = main.py
 #python_compile_items_optimized = pyo
 
 # (list) List of Android architectures to build for
-android.archs = arm64-v8a, armeabi-v7a
+android.archs = arm64-v8a
 
 # (bool) enables Android auto backup feature (Android API >= 23)
 android.allow_backup = True
