@@ -83,6 +83,8 @@ jobs:
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
+          export ACLOCAL_PATH="/usr/share/aclocal"
+          export M4PATH="/usr/share/aclocal"
           buildozer -v android debug
         env:
           ACCEPT_SDK_LICENSE: "yes"
