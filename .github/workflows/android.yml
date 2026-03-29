@@ -57,6 +57,8 @@ jobs:
             libxml2-dev \
             libxslt1-dev \
             libjpeg-dev \
+            libtool \
+            m4 \
             autoconf \
             automake \
             libtool \
