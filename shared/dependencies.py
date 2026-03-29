@@ -18,14 +18,16 @@ def set_custom_data_dir(path):
 def is_compiled():
     """
     Checks if the code is running as a compiled executable
-    (by PyInstaller, cx_Freeze, or Nuitka).
+    (by PyInstaller, cx_Freeze, or Nuitka) or on Android.
     """
     # Check for PyInstaller/cx_Freeze
     is_frozen = getattr(sys, "frozen", False)
     # Check for Nuitka
     is_nuitka = "__compiled__" in globals()
+    # Check for Android
+    is_android = 'ANDROID_ARGUMENT' in os.environ or 'ANDROID_PRIVATE' in os.environ
     
-    return is_frozen or is_nuitka
+    return is_frozen or is_nuitka or is_android
 
 
 def get_global_icon_pil():
