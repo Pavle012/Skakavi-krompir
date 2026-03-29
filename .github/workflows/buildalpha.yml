@@ -14,8 +14,6 @@ jobs:
             arch: x64
           - os: ubuntu-latest
             arch: x64
-          - os: ubuntu-latest
-            arch: aarch64
     runs-on: ${{ matrix.os }}
 
     steps:
