@@ -80,7 +80,6 @@ jobs:
         run: |
           pip install --user buildozer==1.5.0
           pip install --user Cython==0.29.33
-          pip install --user --upgrade p4a
 
       - name: Build with Buildozer
         run: |
