@@ -18,17 +18,17 @@ def set_custom_data_dir(path):
 def is_compiled():
     """
     Checks if the code is running as a compiled executable
-    (by PyInstaller, cx_Freeze, or Nuitka) or on Android.
+    (by PyInstaller, cx_Freeze, or Nuitka).
+    Note: Android detection is not included here because Buildozer doesn't set
+    environment variables during compilation. Android apps rely on sys.frozen
+    or other markers set by the Kivy/Buildozer runtime.
     """
     # Check for PyInstaller/cx_Freeze
     is_frozen = getattr(sys, "frozen", False)
     # Check for Nuitka
     is_nuitka = "__compiled__" in globals()
-    # Check for Android (only set when running on device, not during build)
-    # ANDROID_APP_PATH is set during runtime in Buildozer APKs
-    is_android = 'ANDROID_APP_PATH' in os.environ
     
-    return is_frozen or is_nuitka or is_android
+    return is_frozen or is_nuitka
 
 
 def get_global_icon_pil():
