@@ -3,7 +3,7 @@ import subprocess
 import sys
 import os
 import shutil
-from PIL import Image
+# PIL is imported lazily inside functions to avoid conflicts with Kivy's SDL2 image backend
 
 
 global_icon_pil_image = None # Only global PIL Image
@@ -37,16 +37,15 @@ def get_global_icon_pil():
 
 def load_global_icon_pil():
     global global_icon_pil_image
-    icon_path = get_potato_path() # Use the new function to get the correct potato path
+    from PIL import Image  # lazy import - avoids SDL2 conflict when running under Kivy
+    icon_path = get_potato_path()
     if os.path.exists(icon_path):
         global_icon_pil_image = Image.open(icon_path)
-        # Also generate .ico from .png here for consistency
         ico_path = os.path.join(get_user_data_dir(), "potato.ico")
         if not os.path.exists(ico_path):
             global_icon_pil_image.save(ico_path, format='ICO', sizes=[(256, 256)])
             print(f"Generated {ico_path} from {icon_path}")
     else:
-        # Fallback to default if no custom/standard icon is found
         default_icon_path = resource_path("assets/potato.png")
         if os.path.exists(default_icon_path):
             global_icon_pil_image = Image.open(default_icon_path)
