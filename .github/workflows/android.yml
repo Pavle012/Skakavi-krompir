@@ -84,7 +84,7 @@ jobs:
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          buildozer android debug
+          buildozer -v android debug
         env:
           ACCEPT_SDK_LICENSE: "yes"
 
