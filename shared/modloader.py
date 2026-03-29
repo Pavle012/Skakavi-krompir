@@ -1,6 +1,6 @@
 import os
 import sys
-import dependencies
+from shared import dependencies
 import inspect
 import zipfile
 import json

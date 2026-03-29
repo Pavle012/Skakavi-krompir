@@ -1,7 +1,7 @@
 import scores as scs
-import modloader
-import options
-import dependencies
+from shared import modloader
+from original import options
+from shared import dependencies
 import os
 
 returncode = "error"

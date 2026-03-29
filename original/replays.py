@@ -6,8 +6,8 @@ No tkinter/customtkinter required.
 import os
 import json
 import time
-import dependencies
-import pygame_ui
+from shared import dependencies
+from original import pygame_ui
 
 
 def get_replays_dir():

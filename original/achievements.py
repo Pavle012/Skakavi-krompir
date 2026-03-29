@@ -1,7 +1,7 @@
 import os
 import json
-import dependencies
-import pygame_ui
+from shared import dependencies
+from original import pygame_ui
 
 
 class AchievementManager:

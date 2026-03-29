@@ -5,7 +5,7 @@ lists, info screens) that overlay on whatever pygame surface is current.
 """
 
 import pygame
-import dependencies
+from shared import dependencies
 
 # ---------------------------------------------------------------------------
 # Internal helpers

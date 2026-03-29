@@ -5,9 +5,9 @@ No tkinter/customtkinter required.
 
 import os
 import ast
-import dependencies
+from shared import dependencies
 import requests
-import pygame_ui
+from original import pygame_ui
 
 # --- Public Leaderboard Config ---
 SERVER_URL = "https://dragon-honest-directly.ngrok-free.app"

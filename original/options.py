@@ -6,9 +6,9 @@ No customtkinter required.
 
 import shutil
 import os
-import modloader
-import dependencies
-import pygame_ui
+from shared import modloader
+from shared import dependencies
+from original import pygame_ui
 from PIL import Image
 
 

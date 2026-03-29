@@ -16,4 +16,4 @@ python3 -m nuitka --onefile \
     --enable-plugin=tk-inter \
     --output-dir=dist \
     -o game \
-    main.py
+    original/main.py

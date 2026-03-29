@@ -5,7 +5,7 @@ No tkinter/customtkinter required.
 
 import pygame
 import os
-import dependencies
+from shared import dependencies
 
 retun = "Unnamed"
 

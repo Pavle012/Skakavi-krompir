@@ -1,7 +1,7 @@
 import time
 import random
 import argparse
-import multiplayer
+from shared import multiplayer
 from multiplayer import GameClient
 
 def run_fake_player(host, port, name):

@@ -1,10 +1,16 @@
 import sys
+import os as _os
+# Ensure the project root (parent of the `pygame/` directory) is on sys.path
+# so that `from shared import ...` and `from pygame import ...` resolve correctly.
+_project_root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
 import argparse
 import json
 import threading
 import time
-import dependencies
-from dependencies import is_compiled
+from shared import dependencies
+from shared.dependencies import is_compiled
 
 if not is_compiled():
     dependencies.checkifdepend()
@@ -36,19 +42,19 @@ def dump_status(status_text, score, state):
     except Exception:
         pass
 import pygame
-import scores
-import achievements
+from original import scores
+from original import achievements
 import random
-import namecheck
-import modloader
+from original import namecheck
+from shared import modloader
 import datetime
 import os
-import replays
-import particles
-import powerups
-import options
-import multiplayer
-import pygame_ui
+from original import replays
+from original import particles
+from original import powerups
+from original import options
+from shared import multiplayer
+from original import pygame_ui
 from typing import Optional
 
 paused = False  # initialize before use because of type checking
@@ -686,11 +692,11 @@ def show_pause_screen():
         scores.start_public()
         return None
     def on_settings():
-        import options
+        from original import options
         options.start()
         return None
     def on_update():
-        import updater
+        from shared import updater
         import sys
         game_executable_path = sys.argv[0]
         updater.start_update(game_executable_path)

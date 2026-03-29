@@ -10,26 +10,8 @@ python = import('python').find_installation('python3')
 pkgdatadir = get_option('datadir') / 'skakavi-krompir'
 bindir = get_option('bindir')
 
-# Files to install
-scripts = [
-  'main.py',
-  'achievements.py',
-  'dependencies.py',
-  'fake_player.py',
-  'gui.py',
-  'modloader.py',
-  'multiplayer.py',
-  'namecheck.py',
-  'options.py',
-  'particles.py',
-  'powerups.py',
-  'pygame_ui.py',
-  'replays.py',
-  'scores.py',
-  'updater.py',
-]
-
-install_data(scripts, install_dir: pkgdatadir)
+install_subdir('original', install_dir: pkgdatadir)
+install_subdir('shared', install_dir: pkgdatadir)
 install_subdir('assets', install_dir: pkgdatadir)
 
 # Desktop file
