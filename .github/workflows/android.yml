@@ -118,6 +118,14 @@ jobs:
           chmod +x /tmp/bin/libtoolize
           export PATH="/tmp/bin:$PATH"
           
+          # Suppress system include paths during setup.py builds
+          # This prevents mixing x86_64 system headers with ARM cross-compilation
+          mkdir -p ~/.config/distutils
+          cat > ~/.config/distutils/distutils.cfg << 'EOF'
+          [build_ext]
+          include_dirs=/home/runner/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include
+          EOF
+          
           buildozer -v android debug
         env:
           ACCEPT_SDK_LICENSE: "yes"
