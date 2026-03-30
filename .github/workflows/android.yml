@@ -87,10 +87,6 @@ jobs:
           # Set up environment for autotools
           export ACLOCAL_PATH="/usr/share/aclocal:${ACLOCAL_PATH:-}"
           
-          # Force NDK headers only - exclude system headers
-          export CFLAGS="-isysroot /home/runner/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
-          export CPPFLAGS="-isysroot /home/runner/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
-          
           # Add a wrapper for libtoolize that patches in the missing macro
           mkdir -p /tmp/bin
           cat > /tmp/bin/libtoolize << 'EOF'
