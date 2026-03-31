@@ -28,6 +28,7 @@ jobs:
             python3 \
             python3-pip \
             libtool \
+            libtool-bin \
             m4 \
             autoconf \
             automake \
@@ -40,7 +41,8 @@ jobs:
             libncurses5-dev \
             libncursesw5-dev \
             libffi-dev \
-            libssl-dev
+            libssl-dev \
+            pkg-config
 
       - name: Cache Buildozer
         uses: actions/cache@v4
@@ -48,7 +50,7 @@ jobs:
           path: |
             ~/.buildozer
             .buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec', '.github/workflows/android.yml') }}
 
       - name: Install Buildozer
         run: |
@@ -80,6 +82,21 @@ jobs:
           ]) dnl LT_SYS_SYMBOL_USCORE
           EOF
           export ACLOCAL_PATH="/tmp/aclocal:${ACLOCAL_PATH:-}"
+          
+          # Force libtoolize to always include our macro
+          mkdir -p /tmp/bin
+          cat > /tmp/bin/libtoolize << 'EOF'
+          #!/bin/bash
+          /usr/bin/libtoolize "$@"
+          if [ -d "m4" ]; then
+            cp /tmp/aclocal/lt_sys_symbol_uscore.m4 m4/
+            if [ -f "m4/libtool.m4" ]; then
+              cat /tmp/aclocal/lt_sys_symbol_uscore.m4 >> m4/libtool.m4
+            fi
+          fi
+          EOF
+          chmod +x /tmp/bin/libtoolize
+          export PATH="/tmp/bin:$PATH"
           
           # Prevent Kivy from picking up host include paths via pkg-config
           export KIVY_NO_PKG_CONFIG=1
