@@ -25,48 +25,22 @@ jobs:
           sudo apt-get install -y \
             build-essential \
             git \
-            ffmpeg \
-            libsdl2-dev \
-            libsdl2-image-dev \
-            libsdl2-mixer-dev \
-            libsdl2-ttf-dev \
-            libportmidi-dev \
-            libswscale-dev \
-            libavformat-dev \
-            libavcodec-dev \
-            zlib1g-dev \
-            libgstreamer1.0-dev \
-            gstreamer1.0-plugins-base \
-            gstreamer1.0-plugins-good \
-            libsqlite3-dev \
-            sqlite3 \
-            bzip2 \
-            libbz2-dev \
-            libssl-dev \
-            openssl \
-            libgdbm-dev \
-            libgdbm-compat-dev \
-            liblzma-dev \
-            libreadline-dev \
-            uuid-dev \
-            libffi-dev \
-            tk-dev \
-            xz-utils \
-            libx11-dev \
-            libxext-dev \
-            libxml2-dev \
-            libxslt1-dev \
-            libjpeg-dev \
+            python3 \
+            python3-pip \
             libtool \
             m4 \
             autoconf \
             automake \
             autoconf-archive \
-            pkg-config \
             ant \
             openjdk-17-jdk \
             zip \
-            unzip
+            unzip \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libffi-dev \
+            libssl-dev
 
       - name: Cache Buildozer
         uses: actions/cache@v4
@@ -78,24 +52,16 @@ jobs:
 
       - name: Install Buildozer
         run: |
-          pip install --user buildozer==1.5.0
-          pip install --user Cython==0.29.33
+          pip install --user buildozer==1.7.0
+          pip install --user Cython==3.0.10
 
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Set up environment for autotools
-          export ACLOCAL_PATH="/usr/share/aclocal:${ACLOCAL_PATH:-}"
           
-          # Add a wrapper for libtoolize that patches in the missing macro
-          mkdir -p /tmp/bin
-          cat > /tmp/bin/libtoolize << 'EOF'
-          #!/bin/bash
-          /usr/bin/libtoolize "$@"
-          
-          # After libtoolize runs, patch in the missing LT_SYS_SYMBOL_USCORE macro if needed
-          if [ -d "m4" ] && ! grep -q "LT_SYS_SYMBOL_USCORE" m4/libtool.m4 2>/dev/null; then
-            cat >> m4/libtool.m4 << 'MACRO'
+          # Fix for LT_SYS_SYMBOL_USCORE macro missing in some environments
+          mkdir -p /tmp/aclocal
+          cat > /tmp/aclocal/lt_sys_symbol_uscore.m4 << 'EOF'
           dnl LT_SYS_SYMBOL_USCORE
           dnl Discovered by configure, passed to source
           AC_DEFUN([LT_SYS_SYMBOL_USCORE],
@@ -112,19 +78,12 @@ jobs:
           SYS_SYMBOL_UNDERSCORE=$lt_cv_sys_symbol_underscore
           AC_SUBST([SYS_SYMBOL_UNDERSCORE])
           ]) dnl LT_SYS_SYMBOL_USCORE
-          MACRO
-          fi
           EOF
-          chmod +x /tmp/bin/libtoolize
-          export PATH="/tmp/bin:$PATH"
+          export ACLOCAL_PATH="/tmp/aclocal:${ACLOCAL_PATH:-}"
           
-          # Suppress system include paths during setup.py builds
-          # This prevents mixing x86_64 system headers with ARM cross-compilation
-          mkdir -p ~/.config/distutils
-          cat > ~/.config/distutils/distutils.cfg << 'EOF'
-          [build_ext]
-          include_dirs=/home/runner/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include
-          EOF
+          # Prevent Kivy from picking up host include paths via pkg-config
+          export KIVY_NO_PKG_CONFIG=1
+          export PKG_CONFIG_PATH=""
           
           buildozer -v android debug
         env:
