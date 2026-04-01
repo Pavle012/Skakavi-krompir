@@ -82,18 +82,7 @@ def get_user_data_dir():
         data_dir = custom_data_dir
     elif sys.platform == "android":
         # On Android, use the app's private files directory
-        # Kivy stores this in environment or use the default Android path
-        try:
-            import os
-            # Try to use Kivy's storage first
-            from kivy.storage import JsonStore
-            # Get the path from Kivy's app store location
-            data_dir = os.path.expanduser("~/.kivy")
-            if not os.path.exists(data_dir):
-                data_dir = "/data/data/io.github.pavle012.skakavikrompir/files"
-        except:
-            # Fallback to hardcoded path
-            data_dir = "/data/data/io.github.pavle012.skakavikrompir/files"
+        data_dir = "/data/data/io.github.pavle012.skakavikrompir/files"
     elif sys.platform == "win32":
         data_dir = os.path.join(os.environ["APPDATA"], app_name)
     else:
