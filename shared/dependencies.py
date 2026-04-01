@@ -80,6 +80,11 @@ def get_user_data_dir():
     app_name = "SkakaviKrompir"
     if custom_data_dir:
         data_dir = custom_data_dir
+    elif sys.platform == "android":
+        # On Android, use the app's cache directory (always accessible)
+        from android.app import PythonActivity
+        context = PythonActivity.mActivity
+        data_dir = context.getCacheDir().toString()
     elif sys.platform == "win32":
         data_dir = os.path.join(os.environ["APPDATA"], app_name)
     else:
