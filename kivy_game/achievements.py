@@ -79,7 +79,7 @@ class AchievementManager:
     def get_total_count(self):
         return len(self.definitions)
 
-def show_achievements_gui():
+def show_achievements_gui(on_close=None):
     manager = AchievementManager()
 
     rows = []
@@ -98,6 +98,7 @@ def show_achievements_gui():
         title="Achievements",
         rows=rows,
         columns=columns,
-        extra_info=extra_info
+        extra_info=extra_info,
+        on_close=on_close
     )
     modal.open()

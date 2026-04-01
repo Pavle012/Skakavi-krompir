@@ -27,12 +27,13 @@ def submit_score(player, score):
     req = UrlRequest(f"{SERVER_URL}/submit", req_body=json.dumps(payload), req_headers=headers)
 
 class ScrollableListModal(ModalView):
-    def __init__(self, title, rows, columns, action_buttons_per_row=None, extra_info=None, on_action=None, **kwargs):
+    def __init__(self, title, rows, columns, action_buttons_per_row=None, extra_info=None, on_action=None, on_close=None, **kwargs):
         super().__init__(**kwargs)
         self.background_color = [0, 0, 0, 150/255.0]
         self.size_hint = (0.8, 0.9)
         self.auto_dismiss = False
         self.on_action = on_action
+        self.on_close = on_close
 
         with self.canvas.before:
             Color(30/255, 30/255, 40/255, 1)
@@ -102,7 +103,11 @@ class ScrollableListModal(ModalView):
                  main_layout.add_widget(pub_btn)
         
         btn_close = Button(text="Close", size_hint=(None, None), size=(200, 50), pos_hint={'center_x': 0.5}, background_color=(231/255, 76/255, 60/255, 1))
-        btn_close.bind(on_release=self.dismiss)
+        def on_close_pressed(instance):
+            self.dismiss()
+            if self.on_close:
+                self.on_close()
+        btn_close.bind(on_release=on_close_pressed)
         main_layout.add_widget(btn_close)
         
         self.add_widget(main_layout)
@@ -113,7 +118,7 @@ class ScrollableListModal(ModalView):
         self.line.rounded_rectangle = (self.x, self.y, self.width, self.height, 20)
 
 
-def start():
+def start(on_close=None):
     scores_path = os.path.join(dependencies.get_user_data_dir(), "scores.txt")
     if not os.path.exists(scores_path):
         open(scores_path, "w").close()
@@ -149,7 +154,7 @@ def start():
 
     def on_row_action(idx, val):
         if val == "public":
-            start_public()
+            start_public(on_close=on_close)
 
     if not rows:
         extra_info = ["No local scores yet!", "Play a game to record your first score."]
@@ -160,11 +165,12 @@ def start():
         columns=columns,
         action_buttons_per_row=action_buttons if rows else None,
         extra_info=extra_info,
-        on_action=on_row_action
+        on_action=on_row_action,
+        on_close=on_close
     )
     modal.open()
 
-def start_public():
+def start_public(on_close=None):
     def on_success(req, result):
         if result:
             sorted_lb = sorted(result, key=lambda x: x["score"], reverse=True)
@@ -180,7 +186,8 @@ def start_public():
             title="Public Leaderboard",
             rows=rows,
             columns=columns,
-            extra_info=extra
+            extra_info=extra,
+            on_close=on_close
         )
         modal.open()
 
@@ -189,12 +196,13 @@ def start_public():
             title="Public Leaderboard",
             rows=[],
             columns=[("Score", 0.35), ("Player", 0.65)],
-            extra_info=["Could not fetch leaderboard. Check your connection."]
+            extra_info=["Could not fetch leaderboard. Check your connection."],
+            on_close=on_close
         )
         modal.open()
 
     # Create a loading modal
-    loading = ScrollableListModal("Public Leaderboard", [], [], extra_info=["Loading..."])
+    loading = ScrollableListModal("Public Leaderboard", [], [], extra_info=["Loading..."], on_close=on_close)
     loading.open()
     
     def on_real_success(req, result):

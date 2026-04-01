@@ -63,7 +63,7 @@ def _copy_to_clipboard(text):
     print("Copied to clipboard via Kivy.")
     return True
 
-def start(on_select=None):
+def start(on_select=None, on_close=None):
     replays_list = list_replays()
 
     rows = []
@@ -87,7 +87,7 @@ def start(on_select=None):
                        on_select(replay["data"])
              elif val == "copy":
                   _copy_to_clipboard(json.dumps(replay["data"]))
-                  start(on_select) # Re-open since action closes modal by default
+                  start(on_select, on_close) # Re-open since action closes modal by default
 
     from kivy_game.scores import ScrollableListModal
     modal = ScrollableListModal(
@@ -96,6 +96,7 @@ def start(on_select=None):
         columns=columns,
         action_buttons_per_row=action_buttons if replays_list else None,
         extra_info=extra_info,
-        on_action=on_action
+        on_action=on_action,
+        on_close=on_close
     )
     modal.open()

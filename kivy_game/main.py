@@ -379,25 +379,33 @@ class SkakaviApp(App):
             if not self.game.alive: self.show_main_menu()
         options.start_settings(on_close=on_close)
 
-    def open_scores(self):
-        self.close_modal()
-        from kivy_game import scores
-        scores.start()
-
     def open_achievements(self):
         self.close_modal()
         from kivy_game import achievements
-        achievements.show_achievements_gui()
+        def on_close():
+            if not self.game.alive: self.show_main_menu()
+        achievements.show_achievements_gui(on_close=on_close)
 
     def open_leaderboard(self):
         self.close_modal()
         from kivy_game import scores
-        scores.start_public()
+        def on_close():
+            if not self.game.alive: self.show_main_menu()
+        scores.start_public(on_close=on_close)
 
     def open_replays(self):
         self.close_modal()
         from kivy_game import replays
-        replays.start(on_select=lambda data: print(f"Selected Replay: {data}"))
+        def on_close():
+            if not self.game.alive: self.show_main_menu()
+        replays.start(on_select=lambda data: print(f"Selected Replay: {data}"), on_close=on_close)
+
+    def open_scores(self):
+        self.close_modal()
+        from kivy_game import scores
+        def on_close():
+            if not self.game.alive: self.show_main_menu()
+        scores.start(on_close=on_close)
 
     def exit_game(self):
         os._exit(0)
