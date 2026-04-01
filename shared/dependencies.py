@@ -82,7 +82,8 @@ def get_user_data_dir():
         data_dir = custom_data_dir
     elif sys.platform == "android":
         # On Android, use the app's private files directory
-        data_dir = "/data/data/io.github.pavle012.skakavikrompir/files"
+        # Using the correct package name with capital P from buildozer.spec
+        data_dir = "/data/data/io.github.Pavle012.skakavikrompir/files"
     elif sys.platform == "win32":
         data_dir = os.path.join(os.environ["APPDATA"], app_name)
     else:

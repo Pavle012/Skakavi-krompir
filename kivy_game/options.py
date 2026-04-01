@@ -6,6 +6,7 @@ but uses Kivy widgets (ScrollView, Slider, Spinner) to display them.
 
 import shutil
 import os
+import sys
 from shared import modloader
 from shared import dependencies
 
@@ -19,7 +20,10 @@ from kivy.uix.slider import Slider
 from kivy.uix.spinner import Spinner
 from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.core.window import Window
-from plyer import filechooser # the kivy-compatible way for file picking
+
+# File chooser is only available on non-Android platforms
+if sys.platform != "android":
+    from plyer import filechooser
 
 def _get_settings():
     settings = {}
@@ -240,17 +244,23 @@ def start_settings(on_close=None):
         {"type": "section", "label": "Audio"},
         {"type": "slider", "key": "volume", "label": "Volume", "min": 0.0, "max": 1.0},
         {"type": "bool", "key": "muted", "label": "Muted"},
-        {"type": "section", "label": "Custom Assets"},
-        {"type": "action", "label": "Upload Font", "btn_label": "Browse…", "action": _upload_font},
-        {"type": "action", "label": "Upload Potato Image", "btn_label": "Browse…", "action": lambda: _upload_image(current_values)},
-        {"type": "action", "label": "Upload Jump Sound", "btn_label": "Browse…", "action": lambda: _upload_sound("jump")},
-        {"type": "action", "label": "Upload Death Sound", "btn_label": "Browse…", "action": lambda: _upload_sound("death")},
-        {"type": "action", "label": "Upload Score Sound", "btn_label": "Browse…", "action": lambda: _upload_sound("score")},
-        {"type": "action", "label": "Upload Powerup Sound", "btn_label": "Browse…", "action": lambda: _upload_sound("powerup")},
-        {"type": "action", "label": "Upload Music", "btn_label": "Browse…", "action": lambda: _upload_sound("music")},
-        {"type": "section", "label": "Danger Zone"},
-        {"type": "action", "label": "Reset All Settings", "btn_label": "Reset", "action": do_reset},
     ]
+    
+    # Only add custom asset upload options on non-Android platforms
+    if sys.platform != "android":
+        settings_defs.extend([
+            {"type": "section", "label": "Custom Assets"},
+            {"type": "action", "label": "Upload Font", "btn_label": "Browse…", "action": _upload_font},
+            {"type": "action", "label": "Upload Potato Image", "btn_label": "Browse…", "action": lambda: _upload_image(current_values)},
+            {"type": "action", "label": "Upload Jump Sound", "btn_label": "Browse…", "action": lambda: _upload_sound("jump")},
+            {"type": "action", "label": "Upload Death Sound", "btn_label": "Browse…", "action": lambda: _upload_sound("death")},
+            {"type": "action", "label": "Upload Score Sound", "btn_label": "Browse…", "action": lambda: _upload_sound("score")},
+            {"type": "action", "label": "Upload Powerup Sound", "btn_label": "Browse…", "action": lambda: _upload_sound("powerup")},
+            {"type": "action", "label": "Upload Music", "btn_label": "Browse…", "action": lambda: _upload_sound("music")},
+        ])
+    
+    settings_defs.append({"type": "section", "label": "Danger Zone"})
+    settings_defs.append({"type": "action", "label": "Reset All Settings", "btn_label": "Reset", "action": do_reset})
 
     modloader.trigger_on_settings(settings_defs)
 
