@@ -2,5 +2,6 @@
     "github-actions.workflows.pinned.workflows": [
         ".github/workflows/buildalpha.yml",
         ".github/workflows/buildontag.yml"
-    ]
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:system"
 }

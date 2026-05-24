@@ -56,6 +56,7 @@ from original import options
 from shared import multiplayer
 from original import pygame_ui
 from typing import Optional
+from shared import friends_client
 
 paused = False  # initialize before use because of type checking
 mp_server = None
@@ -734,13 +735,12 @@ def show_pause_screen():
     )
 
 def show_multiplayer_menu():
-    def on_add(): return "add"
     def on_create(): return "create"
     def on_back(): return "back"
 
     button_defs = [
-        ("Add Server", (46, 204, 113), (39, 174, 96), on_add),
-        ("Create Server", (52, 152, 219), (41, 128, 185), on_create),
+        ("Host Local Game", (52, 152, 219), (41, 128, 185), on_create),
+        ("Friends", (155, 89, 182), (142, 68, 173), lambda: "friends"),
         ("Back", (231, 76, 60), (192, 57, 43), on_back),
     ]
 
@@ -750,6 +750,114 @@ def show_multiplayer_menu():
         button_defs=button_defs,
         on_esc=on_back
     )
+
+
+def show_friends_menu():
+    def on_view(): return "view"
+    def on_inbox(): return "inbox"
+    def on_hosts(): return "hosts"
+    def on_add(): return "add"
+    def on_back(): return "back"
+
+    button_defs = [
+        ("View Friends", (52, 152, 219), (41, 128, 185), on_view),
+        ("Inbox", (255, 195, 0), (220, 170, 0), on_inbox),
+        ("Find Friends' Hosts", (46, 204, 113), (39, 174, 96), on_hosts),
+        ("Add Friend", (155, 89, 182), (142, 68, 173), on_add),
+        ("Back", (231, 76, 60), (192, 57, 43), on_back),
+    ]
+
+    return run_ui_overlay(
+        title="Friends",
+        info_lines=["Manage your friends and find their hosted games."],
+        button_defs=button_defs,
+        on_esc=on_back
+    )
+
+
+def show_friend_list(username: str):
+    friends = friends_client.list_friends(username)
+    rows = [(f,) for f in friends]
+    columns = [("Friend", 1.0)]
+    if not rows:
+        run_ui_overlay(title="Friends", info_lines=["You have no friends yet."], button_defs=[("Back", (231,76,60),(192,57,43), lambda: "back")], on_esc=lambda: "back")
+        return
+    res = pygame_ui.draw_scrollable_list(title="Friends", rows=rows, columns=columns, action_buttons_per_row=[], close_label="Back")
+    return res
+
+
+def show_add_friend(username: str):
+    target = get_text_input("Add Friend", "Enter friend's username:")
+    if not target:
+        return
+    ok = friends_client.send_friend_request(username, target)
+    if ok:
+        run_ui_overlay(title="Friend Request", info_lines=[f"Friend request sent to {target}."], button_defs=[("OK", (52,152,219),(41,128,185), lambda: "ok")], on_esc=lambda: "ok")
+    else:
+        run_ui_overlay(title="Friend Request", info_lines=["Failed to send friend request."], button_defs=[("OK", (231,76,60),(192,57,43), lambda: "ok")], on_esc=lambda: "ok")
+
+
+def show_friend_inbox(username: str):
+    pending = friends_client.list_pending_requests(username)
+    if not pending:
+        run_ui_overlay(title="Inbox", info_lines=["No pending friend requests."], button_defs=[("Back", (231,76,60),(192,57,43), lambda: "back")], on_esc=lambda: "back")
+        return
+
+    rows = []
+    for p in pending:
+        req = p.get("requester")
+        msg = p.get("message") or ""
+        rows.append((req, msg))
+
+    columns = [("Requester", 0.4), ("Message", 0.6)]
+    action_buttons = [{"label": "Accept", "color": (46,204,113), "hover": (39,174,96), "value": "accept"}, {"label": "Reject", "color": (231,76,60), "hover": (192,57,43), "value": "reject"}]
+
+    sel = pygame_ui.draw_scrollable_list(title="Inbox", rows=rows, columns=columns, action_buttons_per_row=action_buttons, close_label="Back")
+    if sel is None:
+        return
+    row_idx, action = sel
+    requester = rows[row_idx][0]
+    if action == "accept":
+        ok = friends_client.accept_friend(requester, username)
+        if ok:
+            run_ui_overlay(title="Inbox", info_lines=[f"Accepted {requester}."], button_defs=[("OK", (52,152,219),(41,128,185), lambda: "ok")], on_esc=lambda: "ok")
+        else:
+            run_ui_overlay(title="Inbox", info_lines=["Failed to accept request."], button_defs=[("OK", (231,76,60),(192,57,43), lambda: "ok")], on_esc=lambda: "ok")
+    elif action == "reject":
+        ok = friends_client.reject_friend_request(requester, username)
+        if ok:
+            run_ui_overlay(title="Inbox", info_lines=[f"Rejected {requester}."], button_defs=[("OK", (52,152,219),(41,128,185), lambda: "ok")], on_esc=lambda: "ok")
+        else:
+            run_ui_overlay(title="Inbox", info_lines=["Failed to reject request."], button_defs=[("OK", (231,76,60),(192,57,43), lambda: "ok")], on_esc=lambda: "ok")
+
+
+def show_friend_hosts(username: str):
+    hosts = friends_client.list_friend_hosts(username)
+    rows = []
+    for h in hosts:
+        owner = h.get("owner") or ""
+        host_name = h.get("host_name") or ""
+        external_ip = h.get("external_ip") or ""
+        port = h.get("port") or 0
+        desc = h.get("description") or ""
+        rows.append((host_name, owner, str(port), desc, external_ip))
+
+    if not rows:
+        run_ui_overlay(title="Friends' Hosts", info_lines=["No hosts found from your friends."], button_defs=[("Back", (231,76,60),(192,57,43), lambda: "back")], on_esc=lambda: "back")
+        return None
+
+    columns = [("Host", 0.4), ("Owner", 0.25), ("Port", 0.15), ("Desc", 0.2)]
+    action_buttons = [{"label": "Connect", "color": (46,204,113), "hover": (39,174,96), "value": "connect"}]
+    sel = pygame_ui.draw_scrollable_list(title="Friends' Hosts", rows=[r[:-1] for r in rows], columns=columns, action_buttons_per_row=action_buttons, close_label="Back")
+    if sel is None:
+        return None
+    row_idx, action = sel
+    if action == "connect":
+        chosen = rows[row_idx]
+        ip = chosen[4]
+        port = int(chosen[2])
+        return (ip, port)
+    return None
 
 def show_lobby_screen(client, is_admin):
     global mp_server, mp_client
@@ -813,34 +921,16 @@ def handle_multiplayer():
         choice = show_multiplayer_menu()
         if choice == "back" or choice == "kicked":
             return None
-            
-        if choice == "add":
-            server_addr = get_text_input("Join Server", "Enter server address (IP:Port):")
-            if server_addr:
-                if ":" in server_addr:
-                    try:
-                        host, port = server_addr.split(":")
-                        port = int(port)
-                    except:
-                        host, port = server_addr, multiplayer.DEFAULT_PORT
-                else:
-                    host, port = server_addr, multiplayer.DEFAULT_PORT
-                
-                client = multiplayer.GameClient(host, port, name)
-                if client.connect():
-                    mp_client = client
-                    res = show_lobby_screen(client, False)
-                    if res == "start":
-                         return "start"
-                else:
-                    pass
-                    
-        elif choice == "create":
-            port_str = get_text_input("Create Server", f"Enter port (default {multiplayer.DEFAULT_PORT}):")
+        if choice == "create":
+            port_str = get_text_input("Host Game", f"Enter port to host on (default {multiplayer.DEFAULT_PORT}):")
             port = int(port_str) if port_str and port_str.isdigit() else multiplayer.DEFAULT_PORT
             
             srv = multiplayer.GameServer(port=port, admin_name=name)
-            srv.start()
+            srv.start(
+                use_upnp=True,
+                owner=name,
+                host_name=f"{name}'s host",
+            )
             mp_server = srv
             
             client = multiplayer.GameClient("127.0.0.1", port, name)
@@ -852,6 +942,26 @@ def handle_multiplayer():
             else:
                 srv.stop()
                 mp_server = None
+        elif choice == "friends":
+            fm_choice = show_friends_menu()
+            if fm_choice == "view":
+                show_friend_list(name)
+            elif fm_choice == "inbox":
+                show_friend_inbox(name)
+            elif fm_choice == "add":
+                show_add_friend(name)
+            elif fm_choice == "hosts":
+                host_info = show_friend_hosts(name)
+                if host_info:
+                    host_ip, host_port = host_info
+                    client = multiplayer.GameClient(host_ip, host_port, name)
+                    if client.connect():
+                        mp_client = client
+                        res = show_lobby_screen(client, False)
+                        if res == "start":
+                            return "start"
+                    else:
+                        run_ui_overlay(title="Connect", info_lines=["Failed to connect to friend's host."], button_defs=[("OK", (231,76,60),(192,57,43), lambda: "ok")], on_esc=lambda: "ok")
 
 def show_main_menu():
     def on_start(): return "start"
@@ -881,8 +991,8 @@ def show_main_menu():
         ("Multiplayer", (155, 89, 182), (142, 68, 173), on_multiplayer),
         ("Achievements", (255, 215, 0), (218, 165, 32), on_achievements),
         ("Settings", (155, 89, 182), (142, 68, 173), on_settings),
-        ("Scores", (52, 152, 219), (41, 128, 185), on_scores),
-        ("Leaderboard", (52, 152, 219), (41, 128, 185), on_public_leaderboard),
+        ("Local Scores", (52, 152, 219), (41, 128, 185), on_scores),
+        ("Public Leaderboard", (52, 152, 219), (41, 128, 185), on_public_leaderboard),
         ("Replays", (230, 126, 34), (211, 84, 0), on_replays),
         ("Exit", (231, 76, 60), (192, 57, 43), on_exit),
     ]
@@ -907,6 +1017,12 @@ if rememberName:
     name = getSettings("name")
 else:
     name = namecheck.getname()
+
+# Register player with the records/friends server (best-effort, non-blocking)
+try:
+    threading.Thread(target=lambda: friends_client.register_user(name), daemon=True).start()
+except Exception:
+    pass
 
 # 2. Initialize Pygame AFTER Name Prompt
 HEIGHT = 600
