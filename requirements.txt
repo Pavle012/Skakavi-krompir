@@ -2,3 +2,4 @@ pygame
 nuitka
 requests
 Pillow
+miniupnpc
