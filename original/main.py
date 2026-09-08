@@ -651,14 +651,14 @@ def show_lose_screen():
         return "exit"
 
     button_defs = [
-        ("Restart", (46, 204, 113), (39, 174, 96), on_restart),
         ("Leaderboard", (52, 152, 219), (41, 128, 185), on_leaderboard),
         ("Exit", (231, 76, 60), (192, 57, 43), on_exit),
     ]
-    
+    if not mp_client and not mp_server:
+        button_defs.insert(0, ("Restart", (46, 204, 113), (39, 174, 96), on_restart))
     if mp_client:
         button_defs.insert(0, ("Ready Up", (46, 204, 113), (39, 174, 96), on_ready))
-        
+
     if mp_server:
         button_defs.append(("Stop Server", (231, 76, 60), (192, 57, 43), on_stop_server))
     
@@ -678,7 +678,7 @@ def show_lose_screen():
         title_color=(255, 80, 80),
         hook_func=modloader.trigger_on_lose_screen,
         on_esc=on_exit,
-        on_enter=on_restart,
+        on_enter=on_exit if mp_client or mp_server else on_restart,
         per_frame_callback=lose_callback
     )
 
