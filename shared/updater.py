@@ -6,6 +6,21 @@ import tempfile
 import sys
 from subprocess import DEVNULL
 
+
+def select_asset_url(release_data, asset_name):
+    """
+    Return the exact browser_download_url for a release asset.
+
+    This intentionally matches the full asset name instead of treating the
+    Linux binary prefix as a loose substring, which would incorrectly match
+    both the executable and the flatpak bundle in the same release.
+    """
+    for asset in release_data.get("assets", []):
+        if asset.get("name") == asset_name:
+            return asset.get("browser_download_url")
+    return None
+
+
 def start_update(game_executable_path):
     """
     Downloads and runs the appropriate updater script (.sh or .bat) for the current OS.

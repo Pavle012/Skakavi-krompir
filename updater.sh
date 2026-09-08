@@ -10,8 +10,6 @@ set -e # exit on error
 # --- Configuration ---
 # GitHub repository in the format OWNER/REPO
 REPO="Pavle012/Skakavi-krompir"
-# The name of the release asset to download
-ASSET_NAME="Skakavi-Krompir-Linux"
 # ---------------------
 
 API_URL="https://api.github.com/repos/$REPO/releases/latest"
@@ -30,11 +28,28 @@ if [ ! -f "$GAME_PATH" ]; then
     exit 1
 fi
 
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64|amd64)
+        ARCH_TAG="amd64"
+        ;;
+    aarch64|arm64)
+        ARCH_TAG="arm64"
+        ;;
+    *)
+        echo "Unsupported architecture: $ARCH"
+        exit 1
+        ;;
+esac
+ASSET_NAME="Skakavi-Krompir-Linux-${ARCH_TAG}"
+
 echo "Fetching latest release information from $REPO..."
 
-# Get the download URL for the linux asset using curl and grep
-# This is a bit fragile; using jq would be more robust, but this avoids a dependency.
-DOWNLOAD_URL=$(curl -s $API_URL | grep "browser_download_url.*$ASSET_NAME" | cut -d '"' -f 4)
+echo "Looking for Linux release asset: $ASSET_NAME"
+
+# Resolve the exact asset URL from the release JSON rather than using an
+# ambiguous grep prefix match. This avoids picking up the .flatpak bundle.
+DOWNLOAD_URL=$(curl -fsSL "$API_URL" | python3 -c 'import json,sys; data=json.load(sys.stdin); assets=data.get("assets",[]); matches=[a.get("browser_download_url") for a in assets if a.get("name") == sys.argv[1]]; print(matches[0] if matches else "")' "$ASSET_NAME")
 
 if [ -z "$DOWNLOAD_URL" ]; then
     echo "Could not find a download URL for the asset '$ASSET_NAME'."
