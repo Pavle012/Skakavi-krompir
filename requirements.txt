@@ -2,4 +2,4 @@ pygame
 nuitka
 requests
 Pillow
-miniupnpc
+websocket-client

@@ -4,12 +4,10 @@ import json
 import time
 import uuid
 
-import requests
-import miniupnpc
+import websocket
+from shared import friends_client
 
 DEFAULT_PORT = 15565
-DIRECTORY_URL = "https://dragon-honest-directly.ngrok-free.app"
-
 class GameServer:
     def __init__(self, host="0.0.0.0", port=DEFAULT_PORT, admin_name="Admin"):
         self.host = host
@@ -21,107 +19,31 @@ class GameServer:
         self.players = {}  # conn -> dict of player info
         self.running = False
         self.current_seed = int(time.time() * 1000)
-        self.use_upnp = False
-        self.upnp_mapped_port = None
-        self.external_ip = None
-        self.directory_url = None
         self.directory_owner = None
-        self.directory_host_name = None
-        self.directory_description = None
         self.directory_registered = False
+        self.session_id = None
     
-    def start(self, use_upnp=False, directory_url=None, owner=None, host_name=None, description=None):
-        self.use_upnp = use_upnp
-        self.directory_url = (directory_url or DIRECTORY_URL).rstrip("/")
+    def start(self, owner=None, host_name=None, description=None):
         self.directory_owner = owner
-        self.directory_host_name = host_name
-        self.directory_description = description or "Skakavi Krompir host"
-
-        if self.use_upnp:
-            try:
-                self.external_ip = self.setup_upnp(self.port, self.directory_description)
-                print(f"[Server] UPnP mapped TCP/{self.port} to {self.external_ip}:{self.port}")
-            except Exception as e:
-                print(f"[Server] UPnP setup failed: {e}")
-                self.use_upnp = False
-
-        try:
-            self.server_socket.bind((self.host, self.port))
-            self.server_socket.listen()
-            self.running = True
-            print(f"[Server] Started on {self.host}:{self.port}")
-
-            if self.directory_url and self.directory_owner and self.directory_host_name:
-                self.register_with_directory(self.directory_url, self.directory_owner, self.directory_host_name, self.directory_description)
-
-            accept_thread = threading.Thread(target=self.accept_clients, daemon=True)
-            accept_thread.start()
-            
-            broadcast_thread = threading.Thread(target=self.broadcast_loop, daemon=True)
-            broadcast_thread.start()
-            
-        except Exception as e:
-            print(f"[Server] Failed to start: {e}")
-            self.running = False
+        session = friends_client.create_multiplayer_session(
+            owner, host_name, description or "Skakavi Krompir host"
+        )
+        if not session:
+            print("[Server] Failed to create multiplayer session")
+            return False
+        self.session_id = session["session_id"]
+        self.running = True
+        print(f"[Server] Multiplayer session created: {self.session_id}")
+        return True
             
     def stop(self):
         self.running = False
-        try:
-            self.server_socket.close()
-        except:
-            pass
-        for conn in list(self.clients.keys()):
-            try:
-                conn.close()
-            except:
-                pass
-        self.clients.clear()
-        self.players.clear()
-        self.teardown_upnp()
-        self.unregister_from_directory()
+        self.session_id = None
+        if self.directory_owner:
+            self.unregister_from_directory()
         print("[Server] Stopped.")
 
-    def setup_upnp(self, port, description="Skakavi Krompir host"):
-        upnp = miniupnpc.UPnP()
-        upnp.discoverdelay = 200
-        discovered = upnp.discover()
-        if discovered == 0:
-            raise RuntimeError("No UPnP gateway discovered")
-
-        upnp.selectigd()
-        local_ip = upnp.lanaddr
-        external_ip = upnp.externalipaddress()
-
-        try:
-            upnp.deleteportmapping(port, "TCP")
-        except Exception:
-            pass
-
-        success = upnp.addportmapping(port, "TCP", local_ip, port, description, "")
-        if not success:
-            raise RuntimeError(f"Unable to add UPnP mapping for TCP/{port}")
-
-        self.upnp_mapped_port = port
-        return external_ip
-
-    def teardown_upnp(self):
-        if self.upnp_mapped_port is None:
-            return
-        try:
-            upnp = miniupnpc.UPnP()
-            upnp.discoverdelay = 200
-            upnp.discover()
-            upnp.selectigd()
-            upnp.deleteportmapping(self.upnp_mapped_port, "TCP")
-        except Exception as e:
-            print(f"[Server] UPnP teardown failed: {e}")
-        finally:
-            self.upnp_mapped_port = None
-            self.external_ip = None
-
     def get_advertised_ip(self):
-        if self.external_ip:
-            return self.external_ip
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             sock.connect(("8.8.8.8", 80))
@@ -131,32 +53,21 @@ class GameServer:
         finally:
             sock.close()
 
-    def register_with_directory(self, directory_url, owner, host_name, description="Skakavi Krompir host"):
-        if not directory_url or not owner or not host_name:
+    def register_with_directory(self, owner, host_name, description="Skakavi Krompir host"):
+        if not owner or not host_name:
             return
-        payload = {
-            "owner": owner,
-            "host_name": host_name,
-            "external_ip": self.get_advertised_ip(),
-            "port": self.port,
-            "description": description,
-        }
-        try:
-            requests.post(f"{directory_url}/hosts/register", json=payload, timeout=5)
-            self.directory_registered = True
-        except Exception as e:
-            print(f"[Server] Host directory registration failed: {e}")
+        self.directory_registered = friends_client.register_host(
+            owner, host_name, self.get_advertised_ip(), self.port, description
+        )
+        if not self.directory_registered:
+            print("[Server] Host directory registration failed")
 
     def unregister_from_directory(self):
-        if not self.directory_registered or not self.directory_url or not self.directory_owner:
+        if not self.directory_registered or not self.directory_owner:
             return
-        payload = {"owner": self.directory_owner}
-        try:
-            requests.post(f"{self.directory_url}/hosts/unregister", json=payload, timeout=5)
-        except Exception as e:
-            print(f"[Server] Host directory unregister failed: {e}")
-        finally:
-            self.directory_registered = False
+        if not friends_client.unregister_host(self.directory_owner):
+            print("[Server] Host directory unregister failed")
+        self.directory_registered = False
 
     def accept_clients(self):
         while self.running:
@@ -317,9 +228,8 @@ class GameServer:
 
 
 class GameClient:
-    def __init__(self, host, port, name):
-        self.host = host
-        self.port = port
+    def __init__(self, session_id, name):
+        self.session_id = session_id
         self.name = name
         self.socket = None
         self.running = False
@@ -336,9 +246,9 @@ class GameClient:
 
     def connect(self):
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(5)
-            self.socket.connect((self.host, self.port))
+            self.socket = websocket.create_connection(
+                friends_client.multiplayer_websocket_url(self.session_id), timeout=5
+            )
             self.socket.settimeout(None)
             self.running = True
             
@@ -357,15 +267,10 @@ class GameClient:
         buffer = ""
         while self.running:
             try:
-                data = self.socket.recv(1024).decode('utf-8')
+                data = self.socket.recv()
                 if not data:
                     break
-                buffer += data
-                
-                while '\n' in buffer:
-                    line, buffer = buffer.split('\n', 1)
-                    if line.strip():
-                        self.process_packet(json.loads(line))
+                self.process_packet(json.loads(data))
             except Exception as e:
                 print(f"[Client] Listen error: {e}")
                 self.connection_error = True
@@ -462,8 +367,7 @@ class GameClient:
         if not self.running or not self.socket:
             return
         try:
-            msg = json.dumps(data) + "\n"
-            self.socket.sendall(msg.encode('utf-8'))
+            self.socket.send(json.dumps(data))
         except:
             self.connection_error = True
             self.disconnect()

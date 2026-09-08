@@ -837,26 +837,23 @@ def show_friend_hosts(username: str):
     for h in hosts:
         owner = h.get("owner") or ""
         host_name = h.get("host_name") or ""
-        external_ip = h.get("external_ip") or ""
-        port = h.get("port") or 0
+        session_id = h.get("session_id") or ""
         desc = h.get("description") or ""
-        rows.append((host_name, owner, str(port), desc, external_ip))
+        rows.append((host_name, owner, session_id, desc))
 
     if not rows:
         run_ui_overlay(title="Friends' Hosts", info_lines=["No hosts found from your friends."], button_defs=[("Back", (231,76,60),(192,57,43), lambda: "back")], on_esc=lambda: "back")
         return None
 
-    columns = [("Host", 0.4), ("Owner", 0.25), ("Port", 0.15), ("Desc", 0.2)]
+    columns = [("Host", 0.4), ("Owner", 0.25), ("Session", 0.15), ("Desc", 0.2)]
     action_buttons = [{"label": "Connect", "color": (46,204,113), "hover": (39,174,96), "value": "connect"}]
-    sel = pygame_ui.draw_scrollable_list(title="Friends' Hosts", rows=[r[:-1] for r in rows], columns=columns, action_buttons_per_row=action_buttons, close_label="Back")
+    sel = pygame_ui.draw_scrollable_list(title="Friends' Hosts", rows=rows, columns=columns, action_buttons_per_row=action_buttons, close_label="Back")
     if sel is None:
         return None
     row_idx, action = sel
     if action == "connect":
         chosen = rows[row_idx]
-        ip = chosen[4]
-        port = int(chosen[2])
-        return (ip, port)
+        return chosen[2]
     return None
 
 def show_lobby_screen(client, is_admin):
@@ -926,14 +923,14 @@ def handle_multiplayer():
             port = int(port_str) if port_str and port_str.isdigit() else multiplayer.DEFAULT_PORT
             
             srv = multiplayer.GameServer(port=port, admin_name=name)
-            srv.start(
-                use_upnp=True,
+            if srv.start(
                 owner=name,
                 host_name=f"{name}'s host",
-            )
+            ):
+                client = multiplayer.GameClient(srv.session_id, name)
+            else:
+                continue
             mp_server = srv
-            
-            client = multiplayer.GameClient("127.0.0.1", port, name)
             if client.connect():
                 mp_client = client
                 res = show_lobby_screen(client, True)
@@ -953,8 +950,7 @@ def handle_multiplayer():
             elif fm_choice == "hosts":
                 host_info = show_friend_hosts(name)
                 if host_info:
-                    host_ip, host_port = host_info
-                    client = multiplayer.GameClient(host_ip, host_port, name)
+                    client = multiplayer.GameClient(host_info, name)
                     if client.connect():
                         mp_client = client
                         res = show_lobby_screen(client, False)

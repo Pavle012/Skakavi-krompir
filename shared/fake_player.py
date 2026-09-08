@@ -4,9 +4,9 @@ import argparse
 from shared import multiplayer
 from multiplayer import GameClient
 
-def run_fake_player(host, port, name):
-    client = GameClient(host, port, name)
-    print(f"Connecting to {host}:{port} as {name}...")
+def run_fake_player(session_id, name):
+    client = GameClient(session_id, name)
+    print(f"Connecting to session {session_id} as {name}...")
     if not client.connect():
         print("Failed to connect!")
         return
@@ -83,9 +83,8 @@ def run_fake_player(host, port, name):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=multiplayer.DEFAULT_PORT)
+    parser.add_argument("--session", required=True)
     parser.add_argument("--name", default=f"Bot_{random.randint(100,999)}")
     args = parser.parse_args()
     
-    run_fake_player(args.host, args.port, args.name)
+    run_fake_player(args.session, args.name)

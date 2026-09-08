@@ -109,3 +109,23 @@ def unregister_host(owner: str) -> bool:
         return r.status_code == 200
     except Exception:
         return False
+
+
+def create_multiplayer_session(owner: str, host_name: str, description: str = "Skakavi Krompir host") -> Optional[dict]:
+    try:
+        payload = {"owner": owner, "host_name": host_name, "description": description}
+        r = requests.post(_url("/multiplayer/sessions"), json=payload, timeout=5)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
+
+def multiplayer_websocket_url(session_id: str) -> str:
+    base_url = DIRECTORY_URL.rstrip("/")
+    if base_url.startswith("https://"):
+        base_url = "wss://" + base_url[len("https://"):]
+    elif base_url.startswith("http://"):
+        base_url = "ws://" + base_url[len("http://"):]
+    return f"{base_url}/multiplayer/ws/{session_id}"
