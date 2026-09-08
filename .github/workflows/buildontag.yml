@@ -53,7 +53,7 @@ jobs:
         if: runner.os == 'Linux' && matrix.arch == 'x64'
         run: |
           ARCH=$(dpkg --print-architecture)
-          python -m nuitka --onefile --jobs=$(nproc) --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes original/main.py
+          python -m nuitka --onefile --jobs=$(nproc) --windows-console-mode=disable --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes original/main.py
 
       - name: Create Swap Space for ARM64
         if: runner.os == 'Linux' && matrix.arch == 'aarch64'
