@@ -245,13 +245,29 @@ def startup_event():
 async def create_multiplayer_session(session: MultiplayerSessionRegistration):
     add_user(session.owner)
     session_id = str(uuid.uuid4())
-    multiplayer_sessions[session_id] = MultiplayerSession(session_id, session.owner)
+    previous_session_id = None
     with get_db_connection() as conn:
+        row = conn.execute(
+            "SELECT session_id FROM hosts WHERE owner = ?",
+            (session.owner,),
+        ).fetchone()
+        if row:
+            previous_session_id = row[0]
+        now = int(time.time())
         conn.execute(
             "INSERT INTO hosts (owner, host_name, external_ip, port, description, updated_at, session_id) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (session.owner, session.host_name, "server", 443, session.description, int(time.time()), session_id),
+            "VALUES (?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(owner) DO UPDATE SET host_name = excluded.host_name, "
+            "external_ip = excluded.external_ip, port = excluded.port, "
+            "description = excluded.description, updated_at = excluded.updated_at, "
+            "session_id = excluded.session_id",
+            (session.owner, session.host_name, "server", 443, session.description, now, session_id),
         )
+
+    if previous_session_id in multiplayer_sessions:
+        multiplayer_sessions[previous_session_id].running = False
+        multiplayer_sessions.pop(previous_session_id, None)
+    multiplayer_sessions[session_id] = MultiplayerSession(session_id, session.owner)
     asyncio.create_task(multiplayer_sessions[session_id].broadcast_loop())
     return {"session_id": session_id}
 
