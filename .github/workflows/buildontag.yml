@@ -93,7 +93,7 @@ jobs:
             export CXX=clang++
             pip3 install -r requirements.txt
             ARCH=$(dpkg --print-architecture)
-            python3 -m nuitka --clang --onefile --jobs=1 --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes --lto=no original/main.py
+            python3 -m nuitka --clang --onefile --jobs=1 --low-memory --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes --lto=no original/main.py
             
             VERSION=${{ inputs.version }}
             APP_NAME="Skakavi Krompir"
