@@ -1,9 +1,17 @@
-name: Build game on release tag
+name: Build game manually
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the leading v (for example, 1.2.3)
+        required: true
+        type: string
+      release_name:
+        description: Release title
+        required: false
+        default: ''
+        type: string
 
 jobs:
   build:
@@ -87,8 +95,7 @@ jobs:
             ARCH=$(dpkg --print-architecture)
             python3 -m nuitka --clang --onefile --jobs=1 --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes --lto=no original/main.py
             
-            VERSION=${{ github.ref_name }}
-            VERSION=${VERSION#v}
+            VERSION=${{ inputs.version }}
             APP_NAME="Skakavi Krompir"
             APP_ID="skakavi-krompir"
             DEBIAN_PACKAGE_DIR="debian_package"
@@ -124,8 +131,7 @@ jobs:
       - name: Create .deb package on Linux (x64)
         if: runner.os == 'Linux' && matrix.arch == 'x64'
         run: |
-          VERSION=${{ github.ref_name }}
-          VERSION=${VERSION#v}
+          VERSION=${{ inputs.version }}
           APP_NAME="Skakavi Krompir"
           APP_ID="skakavi-krompir"
           DEBIAN_PACKAGE_DIR="debian_package"
@@ -175,8 +181,7 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
           
-          VERSION=${{ github.ref_name }}
-          VERSION=${VERSION#v}
+          VERSION=${{ inputs.version }}
           APP_ID="io.github.skakavikrompir"
           ARCH=$(dpkg --print-architecture)
           
@@ -227,17 +232,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get tag message
-        id: get_tag_message
-        run: echo "message=$(git tag -l --format='%(contents:subject)' ${{ github.ref }})" >> $GITHUB_OUTPUT
-
       - uses: actions/download-artifact@v4
         with:
           path: dist
 
       - uses: softprops/action-gh-release@v2
         with:
-          name: ${{ steps.get_tag_message.outputs.message }}
+          tag_name: v${{ inputs.version }}
+          name: ${{ inputs.release_name || format('v{0}', inputs.version) }}
           files: |
             dist/game-windows-latest-x64/*
             dist/game-ubuntu-latest-x64/*
