@@ -24,7 +24,7 @@ jobs:
             arch: x64
           - os: ubuntu-latest
             arch: x64
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             arch: aarch64
     runs-on: ${{ matrix.os }}
 
@@ -32,7 +32,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
-        if: matrix.arch != 'aarch64'
         with:
           python-version: '3.11'
 
@@ -51,7 +50,6 @@ jobs:
           key: ${{ runner.os }}-nuitka-${{ hashFiles('requirements.txt') }}
 
       - run: pip install -r requirements.txt
-        if: matrix.arch != 'aarch64'
 
       - name: Build with Nuitka on Windows
         if: runner.os == 'Windows'
@@ -63,70 +61,49 @@ jobs:
           ARCH=$(dpkg --print-architecture)
           python -m nuitka --onefile --jobs=$(nproc) --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes original/main.py
 
-      - name: Create Swap Space for ARM64
-        if: runner.os == 'Linux' && matrix.arch == 'aarch64'
-        run: |
-          sudo swapoff /swapfile || true
-          sudo rm -f /swapfile
-          sudo dd if=/dev/zero of=/swapfile bs=1M count=10240
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-
       - name: Build for ARM64 (Linux)
         if: runner.os == 'Linux' && matrix.arch == 'aarch64'
-        uses: uraimo/run-on-arch-action@v2
-        with:
-          arch: aarch64
-          distro: ubuntu22.04
-          githubToken: ${{ github.token }}
-          setup: |
-            mkdir -p "${PWD}/dist"
-          dockerRunArgs: |
-            --volume "${PWD}:/workspace"
-          shell: /bin/sh
-          install: |
-            apt-get update
-            apt-get install -y python3 python3-pip python3-tk ccache binutils git patchelf clang
-          run: |
-            export CC=clang
-            export CXX=clang++
-            pip3 install -r requirements.txt
-            ARCH=$(dpkg --print-architecture)
-            python3 -m nuitka --clang --onefile --jobs=1 --low-memory --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes --lto=no original/main.py
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk ccache binutils git patchelf clang
+          export CC=clang
+          export CXX=clang++
+          mkdir -p dist
+          ARCH=$(dpkg --print-architecture)
+          python -m nuitka --clang --onefile --jobs=1 --low-memory --python-flag=no_docstrings --output-dir=dist --output-filename="Skakavi-Krompir-Linux-${ARCH}" --include-data-dir=assets=assets --enable-plugin=tk-inter --static-libpython=yes --lto=no original/main.py
             
-            VERSION=${{ inputs.version }}
-            APP_NAME="Skakavi Krompir"
-            APP_ID="skakavi-krompir"
-            DEBIAN_PACKAGE_DIR="debian_package"
+          VERSION=${{ inputs.version }}
+          APP_NAME="Skakavi Krompir"
+          APP_ID="skakavi-krompir"
+          DEBIAN_PACKAGE_DIR="debian_package"
             
-            mkdir -p ${DEBIAN_PACKAGE_DIR}/DEBIAN
-            mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/local/bin
-            mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/applications
-            mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps
-            cp dist/Skakavi-Krompir-Linux-${ARCH} ${DEBIAN_PACKAGE_DIR}/usr/local/bin/${APP_ID}
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/DEBIAN
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/local/bin
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/applications
+          mkdir -p ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps
+          cp dist/Skakavi-Krompir-Linux-${ARCH} ${DEBIAN_PACKAGE_DIR}/usr/local/bin/${APP_ID}
             
-            cat <<EOF > ${DEBIAN_PACKAGE_DIR}/DEBIAN/control
-            Package: ${APP_ID}
-            Version: ${VERSION}
-            Architecture: ${ARCH}
-            Maintainer: user <user@example.com>
-            Description: A Flappy Bird-like game.
-             Skakavi Krompir is a simple game where you control a potato and try to avoid obstacles.
-            Depends: libc6 (>= 2.35)
-            EOF
+          cat <<EOF > ${DEBIAN_PACKAGE_DIR}/DEBIAN/control
+          Package: ${APP_ID}
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: user <user@example.com>
+          Description: A Flappy Bird-like game.
+           Skakavi Krompir is a simple game where you control a potato and try to avoid obstacles.
+          Depends: libc6 (>= 2.35)
+          EOF
             
-            cat <<EOF > ${DEBIAN_PACKAGE_DIR}/usr/share/applications/${APP_ID}.desktop
-            [Desktop Entry]
-            Name=${APP_NAME}
-            Exec=/usr/local/bin/${APP_ID}
-            Icon=/usr/share/pixmaps/${APP_ID}.png
-            Type=Application
-            Categories=Game;
-            EOF
+          cat <<EOF > ${DEBIAN_PACKAGE_DIR}/usr/share/applications/${APP_ID}.desktop
+          [Desktop Entry]
+          Name=${APP_NAME}
+          Exec=/usr/local/bin/${APP_ID}
+          Icon=/usr/share/pixmaps/${APP_ID}.png
+          Type=Application
+          Categories=Game;
+          EOF
             
-            cp assets/potato.png ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps/${APP_ID}.png
-            dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_${ARCH}.deb
+          cp assets/potato.png ${DEBIAN_PACKAGE_DIR}/usr/share/pixmaps/${APP_ID}.png
+          dpkg-deb --build ${DEBIAN_PACKAGE_DIR} dist/${APP_ID}_${VERSION}_${ARCH}.deb
 
       - name: Create .deb package on Linux (x64)
         if: runner.os == 'Linux' && matrix.arch == 'x64'
