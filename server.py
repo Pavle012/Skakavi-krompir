@@ -38,6 +38,22 @@ class HostRegistration(BaseModel):
     description: Optional[str] = "Skakavi Krompir host"
 
 
+class AuthRequest(BaseModel):
+    username: str
+    password: str
+
+
+class ChatMessagePayload(BaseModel):
+    sender: str
+    recipient: str
+    message: str
+
+
+class NotificationActionPayload(BaseModel):
+    username: str
+    notification_id: Optional[int] = None
+
+
 class MultiplayerSessionRegistration(BaseModel):
     owner: str
     host_name: str
@@ -189,6 +205,33 @@ def init_db():
             conn.execute("ALTER TABLE hosts ADD COLUMN session_id TEXT")
         except sqlite3.OperationalError:
             pass
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS accounts (
+            username TEXT PRIMARY KEY,
+            password TEXT,
+            created_at INTEGER
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender TEXT,
+            recipient TEXT,
+            message TEXT,
+            created_at INTEGER
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            kind TEXT,
+            payload TEXT,
+            created_at INTEGER,
+            read_at INTEGER,
+            UNIQUE(username, kind, payload)
+        )
+        """)
 
 
 def add_user(username: str):
@@ -197,6 +240,15 @@ def add_user(username: str):
         conn.execute(
             "INSERT OR IGNORE INTO users (username, created_at) VALUES (?, ?)",
             (username, now)
+        )
+
+
+def add_notification(username: str, kind: str, payload: str):
+    now = int(time.time())
+    with get_db_connection() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO notifications (username, kind, payload, created_at, read_at) VALUES (?, ?, ?, ?, NULL)",
+            (username, kind, payload, now)
         )
 
 
@@ -324,6 +376,84 @@ def leaderboard(limit: int = 10):
     return [{"player": r[0], "score": r[1]} for r in rows]
 
 
+@app.post("/auth/login")
+def auth_login(auth: AuthRequest):
+    username = auth.username.strip()
+    password = auth.password.strip()
+    if not username:
+        raise HTTPException(status_code=400, detail="Username required")
+    if not password:
+        raise HTTPException(status_code=400, detail="Password required")
+    now = int(time.time())
+    with get_db_connection() as conn:
+        row = conn.execute("SELECT password FROM accounts WHERE username = ?", (username,)).fetchone()
+        if row is None:
+            conn.execute("INSERT INTO accounts (username, password, created_at) VALUES (?, ?, ?)", (username, password, now))
+            created = True
+        elif row[0] != password:
+            raise HTTPException(status_code=401, detail="Invalid password")
+        else:
+            created = False
+    # Notify every currently registered friend that this user came online.
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            "SELECT user_b FROM friendships WHERE user_a = ? UNION SELECT user_a FROM friendships WHERE user_b = ?",
+            (username, username),
+        ).fetchall()
+    for row in rows:
+        friend = row[0]
+        add_notification(friend, "friend_online", f"{username} is online")
+    return {"status": "created" if created else "login", "username": username}
+
+
+@app.get("/chat/{username}")
+def list_chat(username: str):
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            "SELECT sender, recipient, message, created_at FROM chat_messages WHERE recipient = ? OR sender = ? ORDER BY created_at DESC LIMIT 100",
+            (username, username),
+        ).fetchall()
+    return [{"sender": r[0], "recipient": r[1], "message": r[2], "created_at": r[3]} for r in rows]
+
+
+@app.post("/chat/send")
+def send_chat(msg: ChatMessagePayload):
+    add_user(msg.sender)
+    add_user(msg.recipient)
+    now = int(time.time())
+    with get_db_connection() as conn:
+        conn.execute(
+            "INSERT INTO chat_messages (sender, recipient, message, created_at) VALUES (?, ?, ?, ?)",
+            (msg.sender, msg.recipient, msg.message, now),
+        )
+        conn.execute(
+            "INSERT OR IGNORE INTO notifications (username, kind, payload, created_at, read_at) VALUES (?, ?, ?, ?, NULL)",
+            (msg.recipient, "chat", f"{msg.sender}: {msg.message}", now),
+        )
+    return {"status": "sent"}
+
+
+@app.get("/notifications/{username}")
+def list_notifications(username: str):
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            "SELECT id, kind, payload, created_at FROM notifications WHERE username = ? AND read_at IS NULL ORDER BY created_at DESC",
+            (username,),
+        ).fetchall()
+    return [{"id": r[0], "kind": r[1], "payload": r[2], "created_at": r[3]} for r in rows]
+
+
+@app.post("/notifications/read")
+def mark_notifications_read(payload: NotificationActionPayload):
+    if payload.notification_id is not None:
+        with get_db_connection() as conn:
+            conn.execute("UPDATE notifications SET read_at = ? WHERE username = ? AND id = ?", (int(time.time()), payload.username, payload.notification_id))
+    else:
+        with get_db_connection() as conn:
+            conn.execute("UPDATE notifications SET read_at = ? WHERE username = ?", (int(time.time()), payload.username))
+    return {"status": "ok"}
+
+
 @app.post("/users/register")
 def register_user(user: UserRegistration):
     add_user(user.username)
@@ -345,6 +475,7 @@ def request_friend(request: FriendRequestPayload):
             "INSERT OR REPLACE INTO friend_requests (requester, target, message, status, created_at) VALUES (?, ?, ?, ?, ?)",
             (request.requester, request.target, request.message or "", "pending", now)
         )
+    add_notification(request.target, "friend_request", f"{request.requester} sent you a friend request")
 
     return {"status": "pending"}
 

@@ -8,9 +8,55 @@ def _url(path: str) -> str:
     return DIRECTORY_URL.rstrip("/") + path
 
 
+def auth_login_or_register(username: str, password: str = "") -> bool:
+    try:
+        r = requests.post(_url("/auth/login"), json={"username": username, "password": password}, timeout=5)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
 def register_user(username: str) -> bool:
     try:
         r = requests.post(_url("/users/register"), json={"username": username}, timeout=5)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
+def send_chat(sender: str, recipient: str, message: str) -> bool:
+    try:
+        payload = {"sender": sender, "recipient": recipient, "message": message}
+        r = requests.post(_url("/chat/send"), json=payload, timeout=5)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
+def list_chat(username: str) -> List[dict]:
+    try:
+        r = requests.get(_url(f"/chat/{username}"), timeout=5)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return []
+
+
+def list_notifications(username: str) -> List[dict]:
+    try:
+        r = requests.get(_url(f"/notifications/{username}"), timeout=5)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return []
+
+
+def mark_notifications_read(username: str, notification_id: Optional[int] = None) -> bool:
+    try:
+        payload = {"username": username, "notification_id": notification_id}
+        r = requests.post(_url("/notifications/read"), json=payload, timeout=5)
         return r.status_code == 200
     except Exception:
         return False

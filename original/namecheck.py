@@ -6,6 +6,7 @@ No tkinter/customtkinter required.
 import pygame
 import os
 from shared import dependencies
+from shared import friends_client
 
 retun = "Unnamed"
 
@@ -37,17 +38,15 @@ def _draw_rounded_rect(surface, color, rect, radius=12, border=0, border_color=N
 
 def getname():
     """
-    Show a pygame name-entry screen.
+    Show a pygame name-entry screen with an optional online-mode username/password
+    account flow used by the public records server.
     Returns the entered name (str).
     """
     global retun
 
-    # Initialise pygame display if it isn't up yet.
-    # (main.py calls us before pygame.init() on first launch, so we do a minimal init here)
     if not pygame.get_init():
         pygame.init()
 
-    # Create a temporary window if none exists yet
     screen = pygame.display.get_surface()
     temp_display = False
     if screen is None:
@@ -55,7 +54,6 @@ def getname():
         pygame.display.set_caption("Skakavi Krompir")
         temp_display = True
 
-    # Try to set window icon
     icon_pil = dependencies.get_global_icon_pil()
     if icon_pil:
         try:
@@ -74,18 +72,23 @@ def getname():
     hint_font = _font(16)
 
     text = ""
+    password_text = ""
     remember = False
+    online_mode = False
+    password_field_active = False
     cursor_visible = True
     cursor_timer = 0
+    error_msg = ""
 
     clock = pygame.time.Clock()
     MAX_NAME_LEN = 24
+    MAX_PASS_LEN = 32
 
     while True:
         sw, sh = screen.get_size()
 
-        box_w = min(480, sw - 60)
-        box_h = 300
+        box_w = min(520, sw - 60)
+        box_h = 340 if online_mode else 300
         box_x = sw // 2 - box_w // 2
         box_y = sh // 2 - box_h // 2
         box_rect = pygame.Rect(box_x, box_y, box_w, box_h)
@@ -94,15 +97,12 @@ def getname():
         _draw_rounded_rect(screen, (30, 30, 48), box_rect, radius=18,
                            border=2, border_color=(100, 100, 180))
 
-        # Title
         t_surf = title_font.render("Enter Your Name", True, (255, 255, 255))
         screen.blit(t_surf, (box_rect.centerx - t_surf.get_width() // 2, box_rect.y + 18))
 
-        # Label
         l_surf = label_font.render("Your name:", True, (190, 190, 215))
         screen.blit(l_surf, (box_rect.x + 24, box_rect.y + 78))
 
-        # Input box
         input_rect = pygame.Rect(box_rect.x + 24, box_rect.y + 108, box_w - 48, 44)
         _draw_rounded_rect(screen, (50, 50, 72), input_rect, radius=8,
                            border=2, border_color=(130, 130, 210))
@@ -117,7 +117,18 @@ def getname():
         screen.blit(t_surf2, (input_rect.x + 10,
                                input_rect.y + (input_rect.h - t_surf2.get_height()) // 2))
 
-        # Cursor
+        password_rect = None
+        if online_mode:
+            pass_label = label_font.render("Password:", True, (190, 190, 215))
+            screen.blit(pass_label, (box_rect.x + 24, box_rect.y + 160))
+            password_rect = pygame.Rect(box_rect.x + 24, box_rect.y + 190, box_w - 48, 44)
+            _draw_rounded_rect(screen, (50, 50, 72), password_rect, radius=8,
+                               border=2, border_color=(130, 130, 210))
+            pass_display = "*" * len(password_text)
+            p_surf = input_font.render(pass_display, True, (255, 255, 255))
+            screen.blit(p_surf, (password_rect.x + 10,
+                                 password_rect.y + (password_rect.h - p_surf.get_height()) // 2))
+
         cursor_timer += clock.get_time()
         if cursor_timer >= 500:
             cursor_visible = not cursor_visible
@@ -127,8 +138,17 @@ def getname():
             pygame.draw.line(screen, (255, 255, 255),
                              (cx, input_rect.y + 6), (cx, input_rect.bottom - 6), 2)
 
-        # Remember checkbox
-        chk_rect = pygame.Rect(box_rect.x + 24, box_rect.y + 166, 22, 22)
+        online_rect = pygame.Rect(box_rect.x + 24, box_rect.y + 250 if online_mode else box_rect.y + 166, 22, 22)
+        _draw_rounded_rect(screen, (55, 55, 80), online_rect, radius=5,
+                           border=2, border_color=(180, 180, 200))
+        if online_mode:
+            inner = online_rect.inflate(-6, -6)
+            pygame.draw.rect(screen, (100, 220, 130), inner, border_radius=3)
+        online_label = hint_font.render("Online mode (sign in / sign up)", True, (210, 210, 220))
+        screen.blit(online_label, (online_rect.right + 10,
+                                   online_rect.y + (online_rect.h - online_label.get_height()) // 2))
+
+        chk_rect = pygame.Rect(box_rect.x + 24, box_rect.y + 280 if online_mode else box_rect.y + 230, 22, 22)
         _draw_rounded_rect(screen, (55, 55, 80), chk_rect, radius=5,
                            border=2, border_color=(180, 180, 200))
         if remember:
@@ -138,9 +158,12 @@ def getname():
         screen.blit(chk_label, (chk_rect.right + 10,
                                  chk_rect.y + (chk_rect.h - chk_label.get_height()) // 2))
 
-        # Buttons
-        save_rect = pygame.Rect(box_rect.x + 24, box_rect.y + 206, (box_w - 56) // 2, 38)
-        exit_rect = pygame.Rect(save_rect.right + 8, box_rect.y + 206,
+        if error_msg:
+            err_surf = hint_font.render(error_msg, True, (255, 130, 130))
+            screen.blit(err_surf, (box_rect.x + 24, box_rect.y + 320 if online_mode else box_rect.y + 266))
+
+        save_rect = pygame.Rect(box_rect.x + 24, box_rect.y + 250 if not online_mode else box_rect.y + 260, (box_w - 56) // 2, 38)
+        exit_rect = pygame.Rect(save_rect.right + 8, box_rect.y + (250 if not online_mode else 260),
                                 (box_w - 56) // 2, 38)
 
         mouse_pos = pygame.mouse.get_pos()
@@ -161,7 +184,6 @@ def getname():
         screen.blit(exit_lbl, (exit_rect.centerx - exit_lbl.get_width() // 2,
                                 exit_rect.centery - exit_lbl.get_height() // 2))
 
-        # Hint
         h_surf = hint_font.render("Enter to save  •  Esc to exit", True, (130, 130, 150))
         screen.blit(h_surf, (box_rect.centerx - h_surf.get_width() // 2, box_rect.bottom - 22))
 
@@ -175,31 +197,59 @@ def getname():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    _do_save(text if text.strip() else "Unnamed", remember)
-                    retun = text if text.strip() else "Unnamed"
-                    return retun
+                    if online_mode and not password_text:
+                        error_msg = "Password required"
+                    else:
+                        if online_mode:
+                            if not friends_client.auth_login_or_register(text.strip(), password_text):
+                                error_msg = "Login failed"
+                                continue
+                        _do_save(text if text.strip() else "Unnamed", remember)
+                        retun = text if text.strip() else "Unnamed"
+                        return retun
                 elif event.key == pygame.K_ESCAPE:
                     import sys
                     pygame.quit()
                     sys.exit()
+                elif event.key == pygame.K_TAB:
+                    password_field_active = not password_field_active
                 elif event.key == pygame.K_BACKSPACE:
-                    text = text[:-1]
+                    if password_field_active and online_mode:
+                        password_text = password_text[:-1]
+                    else:
+                        text = text[:-1]
                 else:
-                    if event.unicode and event.unicode.isprintable() and len(text) < MAX_NAME_LEN:
-                        text += event.unicode
+                    ch = event.unicode
+                    if ch and ch.isprintable():
+                        if password_field_active and online_mode and len(password_text) < MAX_PASS_LEN:
+                            password_text += ch
+                        elif len(text) < MAX_NAME_LEN:
+                            text += ch
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if chk_rect.collidepoint(event.pos):
+                if online_rect.collidepoint(event.pos):
+                    online_mode = not online_mode
+                elif chk_rect.collidepoint(event.pos):
                     remember = not remember
+                elif input_rect.collidepoint(event.pos):
+                    password_field_active = False
+                elif password_rect and password_rect.collidepoint(event.pos):
+                    password_field_active = True
                 elif save_rect.collidepoint(event.pos):
-                    _do_save(text if text.strip() else "Unnamed", remember)
-                    retun = text if text.strip() else "Unnamed"
-                    return retun
+                    if online_mode and not password_text:
+                        error_msg = "Password required"
+                    else:
+                        if online_mode and not friends_client.auth_login_or_register(text.strip(), password_text):
+                            error_msg = "Login failed"
+                            continue
+                        _do_save(text if text.strip() else "Unnamed", remember)
+                        retun = text if text.strip() else "Unnamed"
+                        return retun
                 elif exit_rect.collidepoint(event.pos):
                     import sys
                     pygame.quit()
                     sys.exit()
             if event.type == pygame.VIDEORESIZE:
-                pass  # screen reference stays valid
+                pass
 
 
 def _do_save(name, remember):
