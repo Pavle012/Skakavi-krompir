@@ -734,12 +734,202 @@ def show_pause_screen():
         on_enter=on_resume
     )
 
+def show_chat_screen(username: str):
+    friends = friends_client.list_friends(username)
+    if not friends:
+        run_ui_overlay(title="Chat", info_lines=["You need friends before you can chat."], button_defs=[("Back", (231,76,60),(192,57,43), lambda: "back")], on_esc=lambda: "back")
+        return
+
+    selected = friends[0]
+    draft = ""
+    cursor_visible = True
+    cursor_blink_time = time.monotonic()
+    screen = pygame.display.get_surface()
+    if screen is None:
+        return
+
+    title_font = pygame.font.Font(dependencies.get_font_path(), 38)
+    header_font = pygame.font.Font(dependencies.get_font_path(), 24)
+    friend_font = pygame.font.Font(dependencies.get_font_path(), 18)
+    msg_font = pygame.font.Font(dependencies.get_font_path(), 16)
+    tiny_font = pygame.font.Font(dependencies.get_font_path(), 14)
+
+    box_w = 760
+    box_h = 460
+    box_rect = pygame.Rect((screen.get_width() - box_w) // 2,
+                           (screen.get_height() - box_h) // 2,
+                           box_w, box_h)
+
+    panel_left = pygame.Rect(box_rect.x + 16, box_rect.y + 56, 180, box_rect.h - 78)
+    panel_right = pygame.Rect(box_rect.x + 204, box_rect.y + 56, box_rect.w - 220, box_rect.h - 78)
+    friends_panel = panel_left
+    chat_panel = panel_right
+    input_rect = pygame.Rect(chat_panel.x + 12, chat_panel.bottom - 50, chat_panel.w - 110, 34)
+    send_rect = pygame.Rect(chat_panel.right - 82, chat_panel.bottom - 50, 70, 34)
+    back_rect = pygame.Rect(box_rect.x + 18, box_rect.bottom - 46, 108, 34)
+
+    background = screen.copy()
+    clock = pygame.time.Clock()
+
+    while True:
+        mouse_pos = pygame.mouse.get_pos()
+        hovered_friend_index = None
+        for idx, friend in enumerate(friends):
+            row_rect = pygame.Rect(friends_panel.x + 10,
+                                   friends_panel.y + 52 + idx * 40,
+                                   friends_panel.w - 20,
+                                   34)
+            if row_rect.collidepoint(mouse_pos):
+                hovered_friend_index = idx
+                break
+
+        send_hover = send_rect.collidepoint(mouse_pos)
+        back_hover = back_rect.collidepoint(mouse_pos)
+
+        # Process input events first so typing and buttons are consistent.
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return
+                elif event.key == pygame.K_RETURN:
+                    if draft.strip():
+                        ok = friends_client.send_chat(username, selected, draft.strip())
+                        if ok:
+                            draft = ""
+                elif event.key == pygame.K_BACKSPACE:
+                    if draft:
+                        draft = draft[:-1]
+                elif event.key == pygame.K_TAB:
+                    # keep focus simple: no tab navigation needed
+                    pass
+                else:
+                    if event.unicode and event.unicode.isprintable():
+                        draft += event.unicode
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # friend selection
+                selected_friend_clicked = None
+                for idx, friend in enumerate(friends):
+                    row = pygame.Rect(friends_panel.x + 10,
+                                      friends_panel.y + 52 + idx * 40,
+                                      friends_panel.w - 20,
+                                      34)
+                    if row.collidepoint(event.pos):
+                        selected_friend_clicked = friend
+                        break
+                if selected_friend_clicked:
+                    selected = selected_friend_clicked
+                    draft = ""
+                elif send_rect.collidepoint(event.pos) and draft.strip():
+                    ok = friends_client.send_chat(username, selected, draft.strip())
+                    if ok:
+                        draft = ""
+                elif back_rect.collidepoint(event.pos):
+                    return
+
+        # Cursor blink timer for the composer.
+        if time.monotonic() - cursor_blink_time > 0.45:
+            cursor_visible = not cursor_visible
+            cursor_blink_time = time.monotonic()
+
+        screen.blit(background, (0, 0))
+
+        dim_overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+        dim_overlay.fill((0, 0, 0, 140))
+        screen.blit(dim_overlay, (0, 0))
+
+        pygame.draw.rect(screen, (30, 30, 45), box_rect, border_radius=16)
+        pygame.draw.rect(screen, (120, 120, 255), box_rect, width=2, border_radius=16)
+
+        title_surf = title_font.render("Chat", True, (235, 235, 240))
+        screen.blit(title_surf, (box_rect.centerx - title_surf.get_width() // 2,
+                                 box_rect.y + 14))
+
+        pygame.draw.rect(screen, (48, 50, 65), friends_panel, border_radius=10)
+        pygame.draw.rect(screen, (28, 29, 40), chat_panel, border_radius=10)
+
+        # Friend list with hover color change.
+        friends_title = header_font.render("Friends", True, (190, 190, 215))
+        screen.blit(friends_title, (friends_panel.x + 12, friends_panel.y + 10))
+
+        friend_y = friends_panel.y + 52
+        for idx, friend in enumerate(friends):
+            row_rect = pygame.Rect(friends_panel.x + 10, friend_y, friends_panel.w - 20, 34)
+            is_selected = friend == selected
+            is_hovered = idx == hovered_friend_index
+            if is_selected:
+                color = (70, 76, 110)
+            elif is_hovered:
+                color = (95, 110, 170)
+            else:
+                color = (45, 47, 58)
+            pygame.draw.rect(screen, color, row_rect, border_radius=8)
+            if is_selected:
+                pygame.draw.rect(screen, (110, 210, 140), row_rect, width=2, border_radius=8)
+            elif is_hovered:
+                pygame.draw.rect(screen, (210, 210, 230), row_rect, width=2, border_radius=8)
+            friend_surf = friend_font.render(friend, True, (245, 245, 245))
+            screen.blit(friend_surf, (row_rect.x + 12, row_rect.y + 7))
+            friend_y += 40
+
+        # Conversation history
+        msg_lines = []
+        for msg in friends_client.list_chat(username):
+            if msg.get("sender") == selected and msg.get("recipient") == username:
+                label = f"{selected}: {msg.get('message', '')}"
+                msg_lines.append(label)
+            elif msg.get("sender") == username and msg.get("recipient") == selected:
+                label = f"You: {msg.get('message', '')}"
+                msg_lines.append(label)
+
+        screen.blit(header_font.render(selected, True, (200, 210, 225)), (chat_panel.x + 12, chat_panel.y + 12))
+        msg_y = chat_panel.y + 50
+        for line in msg_lines[-10:]:
+            msg_surf = msg_font.render(line, True, (230, 230, 235))
+            pygame.draw.rect(screen, (50, 50, 70), pygame.Rect(chat_panel.x + 12, msg_y - 4, chat_panel.w - 24, 28), border_radius=6)
+            screen.blit(msg_surf, (chat_panel.x + 20, msg_y))
+            msg_y += 34
+
+        # Input composer with blinking cursor.
+        pygame.draw.rect(screen, (50, 50, 70), input_rect, border_radius=8)
+        pygame.draw.rect(screen, (110, 110, 160), input_rect, width=2, border_radius=8)
+        draft_surf = msg_font.render(draft, True, (250, 250, 250))
+        screen.blit(draft_surf, (input_rect.x + 10, input_rect.y + 8))
+
+        if cursor_visible:
+            cursor_x = input_rect.x + 12 + min(draft_surf.get_width(), input_rect.w - 12)
+            cursor_y = input_rect.y + 7
+            pygame.draw.line(screen, (250, 250, 250), (cursor_x, cursor_y), (cursor_x, cursor_y + 20), 2)
+
+        # Hover-aware send button and back button colors.
+        send_color = (50, 180, 120) if not send_hover else (80, 220, 150)
+        send_rect_color = (50, 180, 120)
+        if send_hover:
+            send_rect_color = (80, 220, 150)
+        pygame.draw.rect(screen, send_rect_color, send_rect, border_radius=8)
+        send_surf = tiny_font.render("Send", True, (255, 255, 255))
+        screen.blit(send_surf, (send_rect.centerx - send_surf.get_width() // 2,
+                                 send_rect.centery - send_surf.get_height() // 2))
+
+        back_color = (180, 65, 60) if not back_hover else (220, 90, 70)
+        pygame.draw.rect(screen, back_color, back_rect, border_radius=8)
+        back_surf = tiny_font.render("Back", True, (255, 255, 255))
+        screen.blit(back_surf, (back_rect.centerx - back_surf.get_width() // 2,
+                                back_rect.centery - back_surf.get_height() // 2))
+
+        pygame.display.flip()
+        clock.tick(60)
+
+
 def show_multiplayer_menu():
     def on_create(): return "create"
+    def on_chat(): return "chat"
     def on_back(): return "back"
 
     button_defs = [
         ("Host Local Game", (52, 152, 219), (41, 128, 185), on_create),
+        ("Chat", (155, 89, 182), (142, 68, 173), on_chat),
         ("Friends", (155, 89, 182), (142, 68, 173), lambda: "friends"),
         ("Back", (231, 76, 60), (192, 57, 43), on_back),
     ]
@@ -918,7 +1108,9 @@ def handle_multiplayer():
         choice = show_multiplayer_menu()
         if choice == "back" or choice == "kicked":
             return None
-        if choice == "create":
+        if choice == "chat":
+            show_chat_screen(name)
+        elif choice == "create":
             port_str = get_text_input("Host Game", f"Enter port to host on (default {multiplayer.DEFAULT_PORT}):")
             port = int(port_str) if port_str and port_str.isdigit() else multiplayer.DEFAULT_PORT
             
