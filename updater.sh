@@ -67,11 +67,29 @@ wget -q --show-progress -O "$TEMP_FILE" "$DOWNLOAD_URL"
 
 echo "Download complete. Replacing the old version..."
 
-# Make the downloaded file executable and replace the old game executable
-# non-interactively. `mv` without `-f` can prompt on an existing file and
-# derail the background updater process.
+# Make the downloaded file executable.
 chmod +x "$TEMP_FILE"
-install -m 0755 "$TEMP_FILE" "$GAME_PATH"
+
+# The game binary is normally installed under /usr/local/bin, which is a
+# privileged location for a non-root user. On a desktop Linux session, the
+# user-friendly choice is a polkit prompt via pkexec. That surfaces the
+# same kind of auth experience a package manager would show instead of
+# forcing a terminal-only sudo/permission error.
+if [ "$(id -u)" -ne 0 ]; then
+    if printf '%s' "$GAME_PATH" | grep -q '^/usr/local/bin/'; then
+        if command -v pkexec >/dev/null 2>&1; then
+            echo "Administrator privileges are required to replace '$GAME_PATH'."
+            pkexec sh -c 'install -m 0755 "$1" "$2"' sh "$TEMP_FILE" "$GAME_PATH"
+        else
+            echo "pkexec is not available. Falling back to a direct install."
+            install -m 0755 "$TEMP_FILE" "$GAME_PATH"
+        fi
+    else
+        install -m 0755 "$TEMP_FILE" "$GAME_PATH"
+    fi
+else
+    install -m 0755 "$TEMP_FILE" "$GAME_PATH"
+fi
 
 # Remove the temporary file if the installer retained it in the temp area.
 rm -f "$TEMP_FILE"
