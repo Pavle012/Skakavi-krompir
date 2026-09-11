@@ -67,11 +67,14 @@ wget -q --show-progress -O "$TEMP_FILE" "$DOWNLOAD_URL"
 
 echo "Download complete. Replacing the old version..."
 
-# Make the downloaded file executable
+# Make the downloaded file executable and replace the old game executable
+# non-interactively. `mv` without `-f` can prompt on an existing file and
+# derail the background updater process.
 chmod +x "$TEMP_FILE"
+install -m 0755 "$TEMP_FILE" "$GAME_PATH"
 
-# Replace the old game executable with the new one
-mv "$TEMP_FILE" "$GAME_PATH"
+# Remove the temporary file if the installer retained it in the temp area.
+rm -f "$TEMP_FILE"
 
 echo "Update complete! '$GAME_FILENAME' has been updated to the latest version."
 echo "Running the game now..."
