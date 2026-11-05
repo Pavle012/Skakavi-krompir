@@ -83,6 +83,7 @@ death_space = None
 death_body = None
 death_last_time = None
 death_accumulator = 0.0
+DEATH_PHYSICS_STEP = 1 / 1000
 replaying = False
 current_replay_data = None
 current_recording = []
@@ -415,6 +416,7 @@ def begin_death():
     death_accumulator = 0.0
     death_space = pymunk.Space()
     death_space.gravity = (0, 1000)
+    death_space.iterations = 20
     death_space.sleep_time_threshold = math.inf
     for pipe_x, pipe_y, is_top in pipesPos:
         pipe_x += scroll
@@ -442,7 +444,7 @@ def begin_death():
     moment = pymunk.moment_for_box(mass, size)
     death_body = pymunk.Body(mass, moment)
     death_body.position = rotated_rect.center if rotated_rect else (x + size[0] / 2, y + size[1] / 2)
-    death_body.velocity = (random.choice((-1, 1)) * random.uniform(180, 260), max(velocity * 60, 120))
+    death_body.velocity = (random.uniform(120, 180), max(velocity * 60, 120))
     death_body.angle = -math.radians(max(min(velocity * -2.5, 30), -90))
     death_body.angular_velocity = random.choice((-1, 1)) * random.uniform(6, 10)
     potato_shape = pymunk.Poly.create_box(death_body, size, radius=5)
@@ -1499,9 +1501,9 @@ while running:
             elapsed = max(0.0, min(now - death_last_time, 0.1))
             death_last_time = now
             death_accumulator += elapsed
-            while death_accumulator >= 1 / 60:
-                death_space.step(1 / 60)
-                death_accumulator -= 1 / 60
+            while death_accumulator >= DEATH_PHYSICS_STEP:
+                death_space.step(DEATH_PHYSICS_STEP)
+                death_accumulator -= DEATH_PHYSICS_STEP
             x = death_body.position.x - image.get_width() / 2
             y = death_body.position.y - image.get_height() / 2
             velocity = death_body.velocity.y / 60
