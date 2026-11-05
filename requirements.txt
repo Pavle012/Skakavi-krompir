@@ -1,5 +1,7 @@
 pygame-ce
+pymunk
 nuitka
 requests
 Pillow
 websocket-client
+customtkinter

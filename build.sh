@@ -3,7 +3,7 @@
 source .venv/bin/activate
 
 # 1. Install dependencies (if needed)
-pip install pygame nuitka requests Pillow customtkinter
+pip install -r requirements.txt
 
 # 2. Cleanup old builds
 rm -rf dist

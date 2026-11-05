@@ -7,6 +7,7 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 import argparse
 import json
+import math
 import threading
 import time
 from shared import dependencies
@@ -14,6 +15,7 @@ from shared.dependencies import is_compiled
 
 if not is_compiled():
     dependencies.checkifdepend()
+    dependencies.ensure_installed("pymunk")
     dependencies.fetch_assets()
 dependencies.install_configs()
 dependencies.load_global_icon_pil()
@@ -42,6 +44,7 @@ def dump_status(status_text, score, state):
     except Exception:
         pass
 import pygame
+import pymunk
 from original import scores
 from original import achievements
 import random
@@ -76,6 +79,8 @@ rotated_image = None
 rotated_rect = None
 game_state_for_mods = {}
 dying = False
+death_space = None
+death_body = None
 replaying = False
 current_replay_data = None
 current_recording = []
@@ -167,7 +172,7 @@ floating_texts = []
 
 
 def restart(replay_data=None):
-    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT, dying
+    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT, dying, death_space, death_body
     global replaying, current_replay_data, current_recording, frame_index, current_seed, replay_config, speed_increase, powerup_manager
     global particle_manager, mp_client, replay_speed, replay_paused, replay_markers
     global difficulty, game_mode, time_left, powerups_collected_this_run, achievement_manager
@@ -239,6 +244,8 @@ def restart(replay_data=None):
     random.seed(current_seed)
     
     dying = False
+    death_space = None
+    death_body = None
     velocity = 0
     x = 100
     y = (HEIGHT // 2)
@@ -391,6 +398,56 @@ def isPotatoColliding(potato_surface, potato_rect):
             return True # Collision detected
 
     return False # No collision
+
+
+def begin_death():
+    global dying, death_space, death_body
+
+    if dying:
+        return
+
+    dying = True
+    death_space = pymunk.Space()
+    death_space.gravity = (0, 1000)
+    for pipe_x, pipe_y, is_top in pipesPos:
+        pipe_x += scroll
+        if pipe_x < -100 or pipe_x > WIDTH + 100:
+            continue
+
+        if is_top:
+            pipe_height = pipe_y + 300
+            pipe_y = 0
+        else:
+            pipe_height = HEIGHT - pipe_y
+
+        if pipe_height <= 0:
+            continue
+
+        pipe_body = pymunk.Body(body_type=pymunk.Body.STATIC)
+        pipe_body.position = (pipe_x + 25, pipe_y + pipe_height / 2)
+        pipe_shape = pymunk.Poly.create_box(pipe_body, (50, pipe_height))
+        pipe_shape.friction = 0.8
+        pipe_shape.elasticity = 0.2
+        death_space.add(pipe_body, pipe_shape)
+
+    mass = 1
+    size = (image.get_width(), image.get_height())
+    moment = pymunk.moment_for_box(mass, size)
+    death_body = pymunk.Body(mass, moment)
+    death_body.position = rotated_rect.center if rotated_rect else (x + size[0] / 2, y + size[1] / 2)
+    death_body.velocity = (random.uniform(-140, 140), velocity * 60)
+    death_body.angle = -math.radians(max(min(velocity * -2.5, 30), -90))
+    death_body.angular_velocity = random.choice((-1, 1)) * random.uniform(4, 8)
+    potato_shape = pymunk.Poly.create_box(death_body, size, radius=5)
+    potato_shape.friction = 0.7
+    potato_shape.elasticity = 0.25
+    death_space.add(death_body, potato_shape)
+
+    play_sound(sound_death)
+    achievement_manager.update_stat("high_score", points, incremental=False)
+    if game_mode == "Zen":
+        achievement_manager.update_stat("zen_high_score", points, incremental=False)
+    particle_manager.create_collision_effect(x + 39, y + 29)
 
 
 def spawnPipe():
@@ -1324,28 +1381,11 @@ while running:
                     rotated_image_on_resume = pygame.transform.rotate(image, angle)
                     rotated_rect_on_resume = rotated_image_on_resume.get_rect(center=image.get_rect(topleft=(x, y)).center)
                     if y > HEIGHT or y < 0 or isPotatoColliding(rotated_image_on_resume, rotated_rect_on_resume):
-                        if replaying:
-                            # Replay ended prematurely via pause-resume? Just go back to menu
-                            menu_res = show_main_menu()
-                            if menu_res == "exit":
-                                running = False
-                            else:
-                                rep = None
-                                if isinstance(menu_res, tuple) and menu_res[0] == "replay":
-                                    rep = menu_res[1]
-                                restart(rep)
-                                paused = False
-                        else:
-                            rotated_image, rotated_rect = rotated_image_on_resume, rotated_rect_on_resume
-                            appendScore([points, name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
-                            scores.submit_score(name, points)
-                            reloadSettings()
-                            afterpause2 = show_lose_screen()
-                            if afterpause2 == "exit":
-                                running = False
-                            elif afterpause2 == "restart":
-                                restart()
-                                paused = False
+                        rotated_image, rotated_rect = rotated_image_on_resume, rotated_rect_on_resume
+                        begin_death()
+                        clock.tick(maxfps)
+                        just_resumed = True
+                        paused = False
                     else:
                         velocity = 0
                         clock.tick(maxfps)  # Reset clock to avoid large delta
@@ -1447,11 +1487,17 @@ while running:
             # Recording moved to end of loop to capture all events
             pass
 
-        velocity += 0.5 * delta * 60
+        if dying:
+            death_space.step(max(0.0, min(delta, 0.1)))
+            x = death_body.position.x - image.get_width() / 2
+            y = death_body.position.y - image.get_height() / 2
+            velocity = death_body.velocity.y / 60
+        else:
+            velocity += 0.5 * delta * 60
+            y += velocity * delta * 60
         if not dying:
             pass # Powerup logic moved to after rotation to ensure rotated_rect is available
-            
-        y += velocity * delta * 60
+
         particle_manager.update(delta)
         clock.tick(maxfps)
 
@@ -1472,8 +1518,7 @@ while running:
         
         # --- Rotation and Drawing ---
         if dying:
-            # Spinner rotation on death
-            angle = (pygame.time.get_ticks() // 5) % 360
+            angle = -math.degrees(death_body.angle)
         else:
             angle = max(min(velocity * -2.5, 30), -90)
             
@@ -1595,13 +1640,7 @@ while running:
                      collision_detected = False
             
             if collision_detected:
-                dying = True
-                play_sound(sound_death)
-                achievement_manager.update_stat("high_score", points, incremental=False)
-                if game_mode == "Zen":
-                    achievement_manager.update_stat("zen_high_score", points, incremental=False)
-                velocity = -8 # Small jump up on death
-                particle_manager.create_collision_effect(x + 39, y + 29) # Center of player
+                begin_death()
         else:
             # When dying, wait for potato to fall off screen
             if y > HEIGHT + 100:
