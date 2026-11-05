@@ -18,4 +18,4 @@ If `pygame`, `pymunk`, `pillow` and `customtkinter` aren't already installed, th
 
 To download the latest stable version, go to the [Releases](https://github.com/Pavle012/Skakavi-krompir/releases) page and download the latest release.
 
-Want to download the latest alpha version? Download a binary here: [Nightly.link](https://nightly.link/Pavle012/Skakavi-krompir/workflows/buildalpha/main?preview) or you can [download the whole repo](https://github.com/Pavle012/Skakavi-krompir/archive/refs/heads/main.zip) and execute the original/main.py with Python directly. 
+Want to download the latest alpha version? Download a binary here: [Nightly.link](https://nightly.link/Pavle012/Skakavi-krompir/workflows/buildalpha/main?preview) or you can [download the whole repo](https://github.com/Pavle012/Skakavi-krompir/archive/refs/heads/main.zip) and execute the original/main.py with Python directly.

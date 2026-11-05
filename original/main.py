@@ -81,6 +81,8 @@ game_state_for_mods = {}
 dying = False
 death_space = None
 death_body = None
+death_last_time = None
+death_accumulator = 0.0
 replaying = False
 current_replay_data = None
 current_recording = []
@@ -172,7 +174,7 @@ floating_texts = []
 
 
 def restart(replay_data=None):
-    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT, dying, death_space, death_body
+    global scrollPixelsPerFrame, jumpVelocity, velocity, x, y, maxfps, clock, paused, points, text_str, text, pipeNumber, scroll, PIPE_SPACING, pipesPos, pipeColor, image, WIDTH, HEIGHT, dying, death_space, death_body, death_last_time, death_accumulator
     global replaying, current_replay_data, current_recording, frame_index, current_seed, replay_config, speed_increase, powerup_manager
     global particle_manager, mp_client, replay_speed, replay_paused, replay_markers
     global difficulty, game_mode, time_left, powerups_collected_this_run, achievement_manager
@@ -246,6 +248,8 @@ def restart(replay_data=None):
     dying = False
     death_space = None
     death_body = None
+    death_last_time = None
+    death_accumulator = 0.0
     velocity = 0
     x = 100
     y = (HEIGHT // 2)
@@ -401,14 +405,17 @@ def isPotatoColliding(potato_surface, potato_rect):
 
 
 def begin_death():
-    global dying, death_space, death_body
+    global dying, death_space, death_body, death_last_time, death_accumulator
 
     if dying:
         return
 
     dying = True
+    death_last_time = time.perf_counter()
+    death_accumulator = 0.0
     death_space = pymunk.Space()
     death_space.gravity = (0, 1000)
+    death_space.sleep_time_threshold = math.inf
     for pipe_x, pipe_y, is_top in pipesPos:
         pipe_x += scroll
         if pipe_x < -100 or pipe_x > WIDTH + 100:
@@ -426,8 +433,8 @@ def begin_death():
         pipe_body = pymunk.Body(body_type=pymunk.Body.STATIC)
         pipe_body.position = (pipe_x + 25, pipe_y + pipe_height / 2)
         pipe_shape = pymunk.Poly.create_box(pipe_body, (50, pipe_height))
-        pipe_shape.friction = 0.8
-        pipe_shape.elasticity = 0.2
+        pipe_shape.friction = 0.2
+        pipe_shape.elasticity = 0.5
         death_space.add(pipe_body, pipe_shape)
 
     mass = 1
@@ -435,12 +442,12 @@ def begin_death():
     moment = pymunk.moment_for_box(mass, size)
     death_body = pymunk.Body(mass, moment)
     death_body.position = rotated_rect.center if rotated_rect else (x + size[0] / 2, y + size[1] / 2)
-    death_body.velocity = (random.uniform(-140, 140), velocity * 60)
+    death_body.velocity = (random.choice((-1, 1)) * random.uniform(180, 260), max(velocity * 60, 120))
     death_body.angle = -math.radians(max(min(velocity * -2.5, 30), -90))
-    death_body.angular_velocity = random.choice((-1, 1)) * random.uniform(4, 8)
+    death_body.angular_velocity = random.choice((-1, 1)) * random.uniform(6, 10)
     potato_shape = pymunk.Poly.create_box(death_body, size, radius=5)
-    potato_shape.friction = 0.7
-    potato_shape.elasticity = 0.25
+    potato_shape.friction = 0.2
+    potato_shape.elasticity = 0.6
     death_space.add(death_body, potato_shape)
 
     play_sound(sound_death)
@@ -1488,7 +1495,13 @@ while running:
             pass
 
         if dying:
-            death_space.step(max(0.0, min(delta, 0.1)))
+            now = time.perf_counter()
+            elapsed = max(0.0, min(now - death_last_time, 0.1))
+            death_last_time = now
+            death_accumulator += elapsed
+            while death_accumulator >= 1 / 60:
+                death_space.step(1 / 60)
+                death_accumulator -= 1 / 60
             x = death_body.position.x - image.get_width() / 2
             y = death_body.position.y - image.get_height() / 2
             velocity = death_body.velocity.y / 60
