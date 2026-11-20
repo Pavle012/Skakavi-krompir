@@ -43,6 +43,9 @@ class DiscordPresenceTests(unittest.TestCase):
             presence.start()
             self.assertTrue(client.updated.wait(timeout=2))
             client.updated.clear()
+            initial_start = client.updates[0]["start"]
+            presence.update("In the menus", "Ready to play")
+            self.assertFalse(client.updated.wait(timeout=0.1))
             presence.update(
                 "In a multiplayer lobby",
                 "2 players",
@@ -63,8 +66,10 @@ class DiscordPresenceTests(unittest.TestCase):
                 "state": "2 players",
                 "join": "session-123",
                 "party_id": "session-123",
+                "start": initial_start,
             },
         )
+        self.assertEqual(client.updates[0]["start"], initial_start)
         self.assertEqual(presence.take_join_request(), session_id)
         self.assertIsNone(presence.take_join_request())
         self.assertTrue(client.cleared)

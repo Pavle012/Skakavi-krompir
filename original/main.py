@@ -1425,7 +1425,7 @@ while running:
                 paused = True
                 dump_status("Paused", points, "paused")
                 if discord_presence:
-                    discord_presence.update("Paused", f"Score: {points}")
+                    discord_presence.update("Paused")
                 afterpause = show_pause_screen()
                 if afterpause == "exit":
                     running = False
@@ -1738,7 +1738,7 @@ while running:
                 presence_details = "Playing multiplayer"
             else:
                 presence_details = f"Playing {game_mode}"
-            discord_presence.update(presence_details, f"Score: {points}")
+            discord_presence.update(presence_details)
 
         pygame.display.update()
 

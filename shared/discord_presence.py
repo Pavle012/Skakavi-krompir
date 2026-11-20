@@ -5,14 +5,18 @@ import uuid
 
 
 DISCORD_APPLICATION_ID = "1573391238051266642"
-PRESENCE_REFRESH_SECONDS = 15
 RECONNECT_SECONDS = 15
 
 
 class DiscordPresence:
     def __init__(self, enabled=True):
         self.enabled = enabled
-        self._activity = {"details": "In the menus", "state": "Ready to play"}
+        self._started_at = int(time.time())
+        self._activity = {
+            "details": "In the menus",
+            "state": "Ready to play",
+            "start": self._started_at,
+        }
         self._join_requests = queue.SimpleQueue()
         self._lock = threading.Lock()
         self._wake = threading.Event()
@@ -28,7 +32,7 @@ class DiscordPresence:
     def update(self, details, state=None, join_secret=None):
         if not self.enabled:
             return
-        activity = {"details": details}
+        activity = {"details": details, "start": self._started_at}
         if state:
             activity["state"] = state
         if join_secret:
@@ -56,7 +60,7 @@ class DiscordPresence:
     def _run(self):
         client = None
         next_connect = 0
-        next_refresh = 0
+        activity_published = False
 
         while not self._stop.is_set():
             now = time.monotonic()
@@ -67,22 +71,23 @@ class DiscordPresence:
                     client = Client(DISCORD_APPLICATION_ID)
                     client.start()
                     client.register_event("ACTIVITY_JOIN", self._on_join)
-                    print("[Discord] Rich Presence connected.")
-                    next_refresh = 0
+                    print("[Discord] Rich Presence connected.", flush=True)
+                    activity_published = False
+                    self._wake.set()
                 except Exception as exc:
                     print(f"[Discord] Rich Presence unavailable: {exc}")
                     client = None
                     next_connect = now + RECONNECT_SECONDS
 
-            if client is not None and (
-                self._wake.is_set() or now >= next_refresh
-            ):
+            if client is not None and self._wake.is_set():
                 with self._lock:
                     activity = dict(self._activity)
                     self._wake.clear()
                 try:
                     client.set_activity(**activity)
-                    next_refresh = now + PRESENCE_REFRESH_SECONDS
+                    if not activity_published:
+                        print("[Discord] Rich Presence activity published.", flush=True)
+                        activity_published = True
                 except Exception as exc:
                     print(f"[Discord] Rich Presence update failed: {exc}")
                     self._close_client(client)
@@ -94,8 +99,6 @@ class DiscordPresence:
                 with self._lock:
                     self._wake.clear()
                 wait_time = min(wait_time, max(0, next_connect - time.monotonic()))
-            else:
-                wait_time = min(wait_time, max(0, next_refresh - time.monotonic()))
             self._wake.wait(wait_time)
 
         if client is not None:
