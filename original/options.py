@@ -102,6 +102,7 @@ def start():
         "game_mode": "Classic",
         "volume": "0.5",
         "muted": "False",
+        "discord_rich_presence": "True",
     }
     for k, v in defaults.items():
         current_values.setdefault(k, v)
@@ -175,6 +176,11 @@ def start():
             "type": "bool",
             "key": "muted",
             "label": "Muted",
+        },
+        {
+            "type": "bool",
+            "key": "discord_rich_presence",
+            "label": "Discord Rich Presence (restart to apply)",
         },
         {"type": "section", "label": "Custom Assets"},
         {

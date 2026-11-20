@@ -166,6 +166,7 @@ def install_configs():
             f.write("speed_increase=0.03\n")
             f.write("volume=0.5\n")
             f.write("muted=False\n")
+            f.write("discord_rich_presence=True\n")
         print(f"Default settings file '{default_settings_path}' created.")
     create_shortcut()
 

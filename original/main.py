@@ -6,6 +6,7 @@ _project_root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 import argparse
+import atexit
 import json
 import math
 import threading
@@ -16,6 +17,7 @@ from shared.dependencies import is_compiled
 if not is_compiled():
     dependencies.checkifdepend()
     dependencies.ensure_installed("pymunk")
+    dependencies.ensure_installed("pypresence")
     dependencies.fetch_assets()
 dependencies.install_configs()
 dependencies.load_global_icon_pil()
@@ -60,6 +62,7 @@ from shared import multiplayer
 from original import pygame_ui
 from typing import Optional
 from shared import friends_client
+from shared.discord_presence import DiscordPresence
 
 paused = False  # initialize before use because of type checking
 mp_server = None
@@ -101,6 +104,7 @@ sound_score = None
 sound_powerup = None
 volume = 0.5
 muted = False
+discord_presence = None
 
 ###############################################
 ############ Flappy Bird-like Game ############
@@ -1147,6 +1151,12 @@ def show_lobby_screen(client, is_admin):
     while True:
         player_names = [p["name"] for p in client.remote_players.values()]
         player_names.insert(0, client.name + " (You)")
+        if discord_presence:
+            discord_presence.update(
+                "In a multiplayer lobby",
+                f"{len(player_names)} players",
+                join_secret=client.session_id,
+            )
         info_lines = [f"Players connected: {len(player_names)}"] + player_names[:5]
 
         button_defs = []
@@ -1169,6 +1179,8 @@ def get_text_input(title, text):
 
 def handle_multiplayer():
     global name, mp_client, mp_server
+    if discord_presence:
+        discord_presence.update("In multiplayer", "Browsing available games")
     
     while True:
         choice = show_multiplayer_menu()
@@ -1218,6 +1230,16 @@ def handle_multiplayer():
                         run_ui_overlay(title="Connect", info_lines=["Failed to connect to friend's host."], button_defs=[("OK", (231,76,60),(192,57,43), lambda: "ok")], on_esc=lambda: "ok")
 
 def show_main_menu():
+    if discord_presence:
+        discord_presence.update("In the menus", "Ready to play")
+
+    def main_menu_callback():
+        if discord_presence:
+            session_id = discord_presence.take_join_request()
+            if session_id:
+                return ("discord_join", session_id)
+        return None
+
     def on_start(): return "start"
     def on_exit(): return "exit"
     def on_settings():
@@ -1257,7 +1279,8 @@ def show_main_menu():
         button_defs=button_defs,
         hook_func=modloader.trigger_on_main_menu,
         on_esc=on_exit,
-        on_enter=on_start
+        on_enter=on_start,
+        per_frame_callback=main_menu_callback
     )
 
 
@@ -1271,6 +1294,12 @@ if rememberName:
     name = getSettings("name")
 else:
     name = namecheck.getname()
+
+discord_presence = DiscordPresence(
+    enabled=getSettings("discord_rich_presence") != "False"
+)
+discord_presence.start()
+atexit.register(discord_presence.stop)
 
 # Register player with the records/friends server (best-effort, non-blocking)
 try:
@@ -1346,6 +1375,20 @@ while True:
         res = handle_multiplayer()
         if res == "start":
             break
+    elif isinstance(menu_res, tuple) and menu_res[0] == "discord_join":
+        client = multiplayer.GameClient(menu_res[1], name)
+        if client.connect():
+            mp_client = client
+            res = show_lobby_screen(client, False)
+            if res == "start":
+                break
+        else:
+            run_ui_overlay(
+                title="Discord Join",
+                info_lines=["Could not connect to that multiplayer lobby."],
+                button_defs=[("OK", (231, 76, 60), (192, 57, 43), lambda: "ok")],
+                on_esc=lambda: "ok",
+            )
     elif menu_res == "start":
         break
     elif isinstance(menu_res, tuple) and menu_res[0] == "replay":
@@ -1381,6 +1424,8 @@ while running:
             if event.key == pygame.K_ESCAPE:
                 paused = True
                 dump_status("Paused", points, "paused")
+                if discord_presence:
+                    discord_presence.update("Paused", f"Score: {points}")
                 afterpause = show_pause_screen()
                 if afterpause == "exit":
                     running = False
@@ -1681,8 +1726,23 @@ while running:
                     elif afterpause == "restart":
                         restart()
                         paused = False
-                    
+
+        if discord_presence:
+            if paused:
+                presence_details = "Paused"
+            elif dying:
+                presence_details = "Game over"
+            elif replaying:
+                presence_details = "Watching a replay"
+            elif mp_client:
+                presence_details = "Playing multiplayer"
+            else:
+                presence_details = f"Playing {game_mode}"
+            discord_presence.update(presence_details, f"Score: {points}")
+
         pygame.display.update()
 
 pygame.quit()
 dump_status("Stopped", points, "stopped")
+if discord_presence:
+    discord_presence.stop()

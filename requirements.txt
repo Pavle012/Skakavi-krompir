@@ -5,3 +5,4 @@ requests
 Pillow
 websocket-client
 customtkinter
+pypresence==4.6.2
