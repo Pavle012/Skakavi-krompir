@@ -21,7 +21,7 @@ class FakePresence:
         self.connected = True
 
     def register_event(self, event, callback):
-        self.events[event] = callback
+        self.events[event.lower()] = callback
 
     def set_activity(self, **activity):
         self.updates.append(activity)
@@ -50,11 +50,12 @@ class DiscordPresenceTests(unittest.TestCase):
             )
             self.assertTrue(client.updated.wait(timeout=2))
             session_id = "d9428888-122b-11e1-b85c-61cd3cbb3210"
-            client.events["join"]({"secret": session_id})
-            client.events["join"]({"secret": "../../unexpected-path"})
+            client.events["activity_join"]({"secret": session_id})
+            client.events["activity_join"]({"secret": "../../unexpected-path"})
             presence.stop()
 
         self.assertTrue(client.connected)
+        self.assertIn("activity_join", client.events)
         self.assertEqual(
             client.updates[-1],
             {

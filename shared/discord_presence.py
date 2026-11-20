@@ -66,7 +66,7 @@ class DiscordPresence:
 
                     client = Client(DISCORD_APPLICATION_ID)
                     client.start()
-                    client.register_event("join", self._on_join)
+                    client.register_event("ACTIVITY_JOIN", self._on_join)
                     print("[Discord] Rich Presence connected.")
                     next_refresh = 0
                 except Exception as exc:
