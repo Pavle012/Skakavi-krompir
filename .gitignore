@@ -16,3 +16,4 @@ __pycache__/
 gha-creds-*.json
 GEMINI.md
 .github/copilot-instructions.md
+.vscode/*
